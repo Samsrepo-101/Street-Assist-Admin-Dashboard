@@ -1,0 +1,80 @@
+{
+  "name": "Announcement",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Announcement title"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Homeless Person",
+        "Stray Dog"
+      ],
+      "description": "Type of announcement"
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "Brief description or subtitle"
+    },
+    "name": {
+      "type": "string",
+      "description": "Subject name (e.g. person's name or dog description)"
+    },
+    "age": {
+      "type": "string",
+      "description": "Age of the subject"
+    },
+    "sex": {
+      "type": "string",
+      "enum": [
+        "Male",
+        "Female",
+        "Unknown"
+      ],
+      "description": "Sex of the subject"
+    },
+    "contact": {
+      "type": "string",
+      "description": "Contact information"
+    },
+    "incident_date": {
+      "type": "string",
+      "description": "Date the subject was spotted"
+    },
+    "incident_time": {
+      "type": "string",
+      "description": "Time the subject was spotted"
+    },
+    "location_address": {
+      "type": "string",
+      "description": "Location where subject was found"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Image URL for the announcement"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Reported",
+        "Under Response",
+        "Assisted",
+        "Closed"
+      ],
+      "default": "Reported",
+      "description": "Current status of the announcement"
+    }
+  },
+  "required": [
+    "title",
+    "category"
+  ]
+}

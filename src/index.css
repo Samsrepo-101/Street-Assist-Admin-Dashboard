@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: 'Inter', sans-serif;
+
+    /* Premium dark-green municipal palette */
+    --background: 138 20% 96%;
+    --foreground: 150 30% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 30% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 30% 8%;
+
+    /* Primary: rich forest green */
+    --primary: 152 60% 28%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 145 30% 90%;
+    --secondary-foreground: 152 60% 20%;
+
+    --muted: 140 18% 92%;
+    --muted-foreground: 150 15% 42%;
+
+    --accent: 152 60% 28%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 82% 57%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 140 20% 86%;
+    --input: 140 20% 86%;
+    --ring: 152 60% 28%;
+
+    --chart-1: 152 60% 28%;
+    --chart-2: 38 92% 50%;
+    --chart-3: 200 80% 45%;
+    --chart-4: 0 82% 57%;
+    --chart-5: 262 83% 58%;
+
+    --radius: 0.875rem;
+
+    /* Sidebar: deep forest green */
+    --sidebar-background: 150 55% 8%;
+    --sidebar-foreground: 140 40% 90%;
+    --sidebar-primary: 145 65% 52%;
+    --sidebar-primary-foreground: 150 55% 8%;
+    --sidebar-accent: 150 45% 13%;
+    --sidebar-accent-foreground: 140 40% 90%;
+    --sidebar-border: 150 40% 14%;
+    --sidebar-ring: 145 65% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-inter antialiased;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); }
+}

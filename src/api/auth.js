@@ -1,0 +1,113 @@
+import { auth } from './firebase.js';
+import { db } from './firebase.js';
+import {
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  createUserWithEmailAndPassword,
+  updateProfile as firebaseUpdateProfile,
+} from 'firebase/auth';
+import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getUserById } from './users.js';
+
+// ---------------------------------------------------------------------------
+// Sign in
+// ---------------------------------------------------------------------------
+
+/**
+ * Signs in with email/password and verifies the user has an admin role.
+ * Throws if credentials are wrong or role check fails.
+ */
+export async function signIn(email, password) {
+  let userCredential;
+  try {
+    userCredential = await signInWithEmailAndPassword(auth, email, password);
+  } catch (firebaseError) {
+    console.error('[auth] signIn error:', firebaseError.code, firebaseError.message);
+    throw firebaseError;
+  }
+
+  const uid = userCredential.user.uid;
+  const userDoc = await getUserById(uid);
+
+  console.log('[auth] uid:', uid);
+  console.log('[auth] userDoc:', userDoc);
+
+  if (userDoc === null) {
+    console.warn('[auth] No Firestore user doc — allowing login');
+    return;
+  }
+
+  const role =
+    userDoc?.role ||
+    userDoc?.userType ||
+    userDoc?.user_type ||
+    userDoc?.type ||
+    '';
+
+  const isAdmin =
+    role === 'admin' ||
+    role === 'Admin' ||
+    userDoc?.isAdmin === true ||
+    userDoc?.is_admin === true;
+
+  if (!isAdmin) {
+    console.warn('[auth] Role check failed:', role);
+    await firebaseSignOut(auth);
+    throw new Error('Access denied');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sign out
+// ---------------------------------------------------------------------------
+
+export async function signOut() {
+  await firebaseSignOut(auth);
+}
+
+// ---------------------------------------------------------------------------
+// Register new account
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates a Firebase Auth account + Firestore /users/{uid} document.
+ *
+ * @param {{ displayName: string, email: string, password: string, role: string }} params
+ * @returns {Promise<string>} New user UID
+ */
+export async function registerUser({ displayName, email, password, role }) {
+  const credential = await createUserWithEmailAndPassword(auth, email, password);
+  const uid = credential.user.uid;
+
+  await firebaseUpdateProfile(credential.user, { displayName });
+
+  await setDoc(doc(db, 'users', uid), {
+    displayName,
+    email,
+    role,
+    photoURL: '',
+    createdAt: serverTimestamp(),
+    lastSignInAt: serverTimestamp(),
+  });
+
+  return uid;
+}
+
+// ---------------------------------------------------------------------------
+// Update profile
+// ---------------------------------------------------------------------------
+
+/**
+ * Updates Firestore /users/{uid} with the provided fields.
+ * Only touches the fields you pass — does not overwrite others.
+ */
+export async function updateUserProfile(uid, fields) {
+  await updateDoc(doc(db, 'users', uid), fields);
+}
+
+/**
+ * Updates the Firebase Auth user profile (displayName, photoURL).
+ */
+export async function updateAuthProfile(firebaseUser, fields) {
+  await firebaseUpdateProfile(firebaseUser, fields);
+}

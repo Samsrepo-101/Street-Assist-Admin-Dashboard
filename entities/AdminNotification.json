@@ -1,0 +1,36 @@
+{
+  "name": "AdminNotification",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Notification title"
+    },
+    "message": {
+      "type": "string",
+      "description": "Notification message body"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the notification has been read"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "new_report",
+        "new_comment",
+        "status_update"
+      ],
+      "description": "Type of notification"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "ID of the related report or announcement"
+    }
+  },
+  "required": [
+    "title",
+    "message"
+  ]
+}

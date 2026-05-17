@@ -1,0 +1,22 @@
+{
+  "name": "AnnouncementComment",
+  "type": "object",
+  "properties": {
+    "announcement_id": {
+      "type": "string",
+      "description": "ID of the announcement this comment belongs to"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Name of the commenter"
+    },
+    "content": {
+      "type": "string",
+      "description": "Comment text"
+    }
+  },
+  "required": [
+    "announcement_id",
+    "content"
+  ]
+}

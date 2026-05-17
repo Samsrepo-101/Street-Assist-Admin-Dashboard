@@ -1,0 +1,75 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build & compiled outputs
+dist/
+dist-ssr/
+build/
+out/
+
+# Vite cache
+.vite/
+
+# Local environment secret files (CRITICAL: Do NOT push to GitHub)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+*.env
+!*.env.example
+
+# Firebase admin SDK & private key secrets
+serviceAccount.json
+firebase-key.json
+*.private.json
+credentials*.json
+
+# Logs & caches
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.eslintcache
+.stylelintcache
+.cache/
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDEs & Editor Configurations
+.vscode/
+.idea/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+
+# OS Metadata & Junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
