@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Clock, TrendingUp, CheckCircle2, AlertTriangle, Megaphone } from 'lucide-react';
-import StatCard from '../Components/dashboard/StatCard';
-import RecentReportsList from '../Components/dashboard/RecentReportList';
+import StatCard from '../components/dashboard/StatCard';
+import RecentReportsList from '../components/dashboard/RecentReportList';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { subscribeToReports } from '../api/reports.js';
