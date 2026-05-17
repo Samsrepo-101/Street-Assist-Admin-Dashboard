@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, MapPin, Clock, Trash2, Download, User, FileText, ChevronRight } from 'lucide-react';
 import { format, isAfter, subDays } from 'date-fns';
-import ReportDetailDialog from '../Components/report/ReportDetailDialog';
+import ReportDetailDialog from '../components/report/ReportDetailDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
