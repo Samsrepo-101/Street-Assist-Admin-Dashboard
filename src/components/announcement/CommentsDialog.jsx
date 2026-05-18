@@ -15,7 +15,7 @@ export default function CommentsDialog({ announcement, open, onClose }) {
 
   useEffect(() => {
     if (!announcement?.id) return;
-    const isClosed = announcement.status === 'closed' || announcement.status === 'Closed';
+    const isClosed = announcement.status === 'Case Closed' || announcement.status === 'closed' || announcement.status === 'Closed';
     if (isClosed) {
       setNewComment('');
     }
@@ -32,7 +32,7 @@ export default function CommentsDialog({ announcement, open, onClose }) {
 
   const handlePost = async () => {
     if (!newComment.trim()) return;
-    const isClosed = announcement?.status === 'closed' || announcement?.status === 'Closed';
+    const isClosed = announcement?.status === 'Case Closed' || announcement?.status === 'closed' || announcement?.status === 'Closed';
     if (isClosed) return;
     try {
       await postComment(announcement.id, {
@@ -68,9 +68,9 @@ export default function CommentsDialog({ announcement, open, onClose }) {
           ))}
         </div>
 
-        {announcement?.status === 'closed' || announcement?.status === 'Closed' ? (
-          <div className="text-center py-2.5 px-4 bg-muted text-muted-foreground text-sm font-medium rounded-xl border border-border">
-            Comments are closed for this announcement
+        {announcement?.status === 'Case Closed' || announcement?.status === 'closed' || announcement?.status === 'Closed' ? (
+          <div className="text-center py-2.5 px-4 bg-slate-100 text-slate-500 text-xs font-semibold rounded-xl border border-slate-200">
+            This case has been closed and can no longer receive updates.
           </div>
         ) : (
           <div className="flex gap-2">

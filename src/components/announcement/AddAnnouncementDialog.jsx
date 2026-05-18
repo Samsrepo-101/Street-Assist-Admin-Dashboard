@@ -85,7 +85,7 @@ export default function AddAnnouncementDialog({ open, onClose }) {
     try {
       await createAnnouncement({
         ...form,
-        status: 'open',
+        status: 'Reported',
         ...(imageUrl ? { imageUrl } : {}),
       });
       toast.success('Announcement posted successfully');

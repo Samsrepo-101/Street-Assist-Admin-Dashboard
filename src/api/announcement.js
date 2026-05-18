@@ -22,6 +22,21 @@ import { toast } from 'sonner';
  * @param {function} callback - Called with the mapped announcements array on each update.
  * @returns {function} Firestore unsubscribe function.
  */
+export function mapRawAnnouncementStatus(status) {
+  if (!status) return 'Reported';
+  const s = String(status).trim();
+  if (s === 'Reported' || s === 'Verified by Police' || s === 'Search Ongoing' || s === 'Resolved' || s === 'Case Closed') {
+    return s;
+  }
+  const lower = s.toLowerCase();
+  if (lower === 'verified' || lower === 'verified by police' || lower === 'verified_by_police') return 'Verified by Police';
+  if (lower === 'ongoing' || lower === 'search ongoing' || lower === 'search_ongoing') return 'Search Ongoing';
+  if (lower === 'resolved') return 'Resolved';
+  if (lower === 'closed' || lower === 'case closed' || lower === 'case_closed') return 'Case Closed';
+  if (lower === 'open') return 'Reported';
+  return 'Reported';
+}
+
 export function subscribeToAnnouncements(callback) {
   const q = query(
     collection(db, 'announcements'),
@@ -49,7 +64,7 @@ export function subscribeToAnnouncements(callback) {
         longitude: document.data().longitude ?? null,
         image_url: document.data().image_url ?? '',
         imageUrl: document.data().imageUrl ?? document.data().image_url ?? '',
-        status: document.data().status ?? '',
+        status: mapRawAnnouncementStatus(document.data().status ?? ''),
       }));
 
       callback(announcements);
@@ -86,7 +101,7 @@ export async function createAnnouncement({ title, content, imageUrl, status, ...
     ...(content && content.trim() ? { content: content.trim() } : {}),
     // imageUrl from Cloudinary upload
     ...(imageUrl ? { imageUrl } : {}),
-    status: status ?? 'open',
+    status: status ? mapRawAnnouncementStatus(status) : 'Reported',
     ...rest,
     timestamp: serverTimestamp(),
   });
@@ -145,8 +160,8 @@ export async function postComment(announcementId, { userId, text }) {
   const annSnap = await getDoc(annRef);
   if (annSnap.exists()) {
     const annData = annSnap.data();
-    if (annData && (annData.status === 'closed' || annData.status === 'Closed')) {
-      throw new Error('Comments are closed for this announcement.');
+    if (annData && mapRawAnnouncementStatus(annData.status) === 'Case Closed') {
+      throw new Error('This case has been closed and can no longer receive updates.');
     }
   }
 
@@ -175,5 +190,14 @@ export async function deleteAnnouncement(announcementId) {
  * @returns {Promise<void>}
  */
 export async function updateAnnouncementStatus(announcementId, status) {
-  await updateDoc(doc(db, 'announcements', announcementId), { status });
+  const mapped = mapRawAnnouncementStatus(status);
+  const annRef = doc(db, 'announcements', announcementId);
+  const annSnap = await getDoc(annRef);
+  if (annSnap.exists()) {
+    const annData = annSnap.data();
+    if (annData && mapRawAnnouncementStatus(annData.status) === 'Case Closed') {
+      throw new Error('This case has been closed and can no longer be modified.');
+    }
+  }
+  await updateDoc(annRef, { status: mapped });
 }

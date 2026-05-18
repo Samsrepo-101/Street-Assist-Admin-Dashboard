@@ -22,6 +22,7 @@ export default function Announcements() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
   const [dateFilter, setDateFilter] = useState('All Dates');
+  const [statusFilter, setStatusFilter] = useState('All Statuses');
 
   const [announcements, setAnnouncements] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +64,7 @@ export default function Announcements() {
       setStatusTarget(null);
       setNewStatus('');
     } catch (err) {
-      toast.error('Failed to update status');
+      toast.error(err.message || 'Failed to update status');
     }
   };
 
@@ -94,7 +95,9 @@ export default function Announcements() {
         }
       }
 
-      return matchSearch && matchCategory && matchDate;
+      const matchStatus = statusFilter === 'All Statuses' || ann.status === statusFilter;
+
+      return matchSearch && matchCategory && matchDate && matchStatus;
     });
 
     // 2. Sort
@@ -111,7 +114,7 @@ export default function Announcements() {
     });
 
     return result;
-  }, [announcements, search, categoryFilter, dateFilter]);
+  }, [announcements, search, categoryFilter, dateFilter, statusFilter]);
 
   if (isLoading) {
     return <div className="space-y-4 w-full">{[1,2].map(i => <Skeleton key={i} className="h-48 rounded-2xl" />)}</div>;
@@ -163,6 +166,19 @@ export default function Announcements() {
               <SelectItem value="Newest">Newest</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-44 h-9 text-sm bg-muted/40 border-0">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All Statuses">All Statuses</SelectItem>
+              <SelectItem value="Reported">Reported</SelectItem>
+              <SelectItem value="Verified by Police">Verified by Police</SelectItem>
+              <SelectItem value="Search Ongoing">Search Ongoing</SelectItem>
+              <SelectItem value="Resolved">Resolved</SelectItem>
+              <SelectItem value="Case Closed">Case Closed</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -177,7 +193,7 @@ export default function Announcements() {
               key={ann.id}
               announcement={ann}
               onViewComments={setCommentsTarget}
-              onUpdateStatus={(a) => { setStatusTarget(a); setNewStatus(a.status || 'open'); }}
+              onUpdateStatus={(a) => { setStatusTarget(a); setNewStatus(a.status || 'Search Ongoing'); }}
               onDelete={handleDelete}
             />
           ))
@@ -192,14 +208,33 @@ export default function Announcements() {
           <DialogHeader>
             <DialogTitle>Update Status</DialogTitle>
           </DialogHeader>
-          <Select value={newStatus} onValueChange={setNewStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex justify-end gap-2">
+          {statusTarget && (
+            <div className="space-y-3 py-2 border-y border-border my-2">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Announcement:</p>
+                <p className="text-sm font-bold text-foreground truncate mt-0.5">{statusTarget.title}</p>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">Current Status:</span>
+                <span className="font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">{statusTarget.status}</span>
+              </div>
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">New Status:</p>
+            <Select value={newStatus} onValueChange={setNewStatus}>
+              <SelectTrigger className="w-full text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Verified by Police">Verified by Police</SelectItem>
+                <SelectItem value="Search Ongoing">Search Ongoing</SelectItem>
+                <SelectItem value="Resolved">Resolved</SelectItem>
+                <SelectItem value="Case Closed">Case Closed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setStatusTarget(null)}>Cancel</Button>
             <Button onClick={handleUpdateStatus}>Update</Button>
           </div>
