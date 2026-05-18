@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { subscribeToAdminNotifications, markNotificationRead, deleteNotification } from '../api/notifications.js';
-import { subscribeToReports } from '../api/reports.js';
+import { subscribeToReports, STATUS_CONFIG } from '../api/reports.js';
 import { subscribeToAnnouncements } from '../api/announcement.js';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,10 +37,14 @@ function timeAgo(date) {
 
 // Status badge colours matching the rest of the dashboard
 const STATUS_BADGE = {
-  'Pending':   'bg-amber-50 text-amber-700 border border-amber-200',
-  'In Review': 'bg-teal-50 text-teal-700 border border-teal-200',
-  'Resolved':  'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  'Rejected':  'bg-red-50 text-red-700 border border-red-200',
+  'pending':     'bg-amber-50 text-amber-700 border border-amber-200',
+  'on_progress': 'bg-teal-50 text-teal-700 border border-teal-200',
+  'resolved':    'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  'rejected':    'bg-red-50 text-red-700 border border-red-200',
+  'Pending':     'bg-amber-50 text-amber-700 border border-amber-200',
+  'In Review':   'bg-teal-50 text-teal-700 border border-teal-200',
+  'Resolved':    'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  'Rejected':    'bg-red-50 text-red-700 border border-red-200',
 };
 
 // ---------------------------------------------------------------------------
@@ -65,7 +69,7 @@ function ReportFeedItem({ report }) {
             {report.reportId || report.report_id || report.id}
           </span>
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${statusStyle}`}>
-            {report.status}
+            {STATUS_CONFIG[report.status]?.label || report.status}
           </span>
           {report.reportType && (
             <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">

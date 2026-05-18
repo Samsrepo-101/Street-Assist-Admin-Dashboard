@@ -2,16 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, MapPin, Clock, User } from 'lucide-react';
 import { format } from 'date-fns';
-
-const statusConfig = {
-  'Pending':   { dot: 'bg-amber-400',   badge: 'bg-amber-50 text-amber-700 border-amber-200',       label: 'Pending' },
-  'In Review': { dot: 'bg-teal-500',    badge: 'bg-teal-50 text-teal-700 border-teal-200',           label: 'In Review' },
-  'Resolved':  { dot: 'bg-emerald-400', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',  label: 'Resolved' },
-  'Rejected':  { dot: 'bg-red-400',     badge: 'bg-red-50 text-red-700 border-red-200',              label: 'Rejected' },
-};
+import { getStatusConfig } from '../../api/reports.js';
 
 export default function RecentReportsList({ reports }) {
-  const recent = reports.slice(0, 6);
+  const recent = reports.slice(0, 5);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
@@ -35,7 +29,7 @@ export default function RecentReportsList({ reports }) {
       ) : (
         <div className="divide-y divide-border">
           {recent.map((report) => {
-            const sc = statusConfig[report.status] ?? statusConfig['Pending'];
+            const sc = getStatusConfig(report.status);
             return (
               <Link
                 key={report.id}

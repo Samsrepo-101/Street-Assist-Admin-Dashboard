@@ -33,12 +33,28 @@ import { toast } from 'sonner';
 //
 // ---------------------------------------------------------------------------
 
+export function mapRawStatus(status) {
+  if (!status) return 'Pending';
+  const s = String(status).trim();
+  if (s === 'Pending' || s === 'Verified' || s === 'In Progress' || s === 'Resolved' || s === 'Closed') {
+    return s;
+  }
+  const lower = s.toLowerCase();
+  if (lower === 'pending') return 'Pending';
+  if (lower === 'verified') return 'Verified';
+  if (lower === 'in progress' || lower === 'in_progress' || lower === 'in review' || lower === 'in_review' || lower === 'on_progress' || lower === 'on progress') {
+    return 'In Progress';
+  }
+  if (lower === 'resolved') return 'Resolved';
+  if (lower === 'rejected' || lower === 'closed') return 'Closed';
+  return 'Pending';
+}
+
 function mapReport(docSnap) {
   const d = docSnap.data();
 
-  // Status — Firestore stores "Pending", "Resolved", etc. (capitalised)
-  // Normalise to lowercase for internal use, display with label map
-  const rawStatus = d.status ?? 'Pending';
+  // Status — safe mapping of legacy/current values to required capitalized values
+  const status = mapRawStatus(d.status);
 
   // photoUrl is a single Cloudinary URL string (not an array)
   const photoUrl = d.photoUrl ?? d.photoURL ?? d.image_url ?? '';
@@ -69,8 +85,8 @@ function mapReport(docSnap) {
     approximateAge:       d.approximateAge       ?? '',
     sex:                  d.sex                  ?? '',
 
-    // Status — keep original capitalisation for display, also expose lowercase
-    status:               rawStatus,
+    // Status — always exactly one of: Pending, Verified, In Progress, Resolved, Closed
+    status,
 
     // Timestamps
     timestamp:            d.seenAt               ?? d.timestamp ?? null,
@@ -95,23 +111,32 @@ function mapReport(docSnap) {
     // Optional resolution fields
     resolvedByUserId:     d.resolvedByUserId      ?? null,
     resolutionTimestamp:  d.resolutionTimestamp   ?? null,
+
+    // Status Update History array
+    statusUpdates:        d.statusUpdates        ?? [],
   };
 }
 
 // ---------------------------------------------------------------------------
 // Status config — maps Firestore status strings to display labels + colours
-// Firestore uses capitalised values: "Pending", "Resolved", etc.
 // ---------------------------------------------------------------------------
 export const STATUS_CONFIG = {
-  'Pending':   { label: 'Pending',   badge: 'bg-amber-50 text-amber-700 border-amber-200',   bar: '#F59E0B', dot: 'bg-amber-400' },
-  'Resolved':  { label: 'Resolved',  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', bar: '#10B981', dot: 'bg-emerald-400' },
-  'In Review': { label: 'In Review', badge: 'bg-teal-50 text-teal-700 border-teal-200',       bar: '#0d9488', dot: 'bg-teal-500' },
-  'Rejected':  { label: 'Rejected',  badge: 'bg-red-50 text-red-700 border-red-200',           bar: '#ef4444', dot: 'bg-red-400' },
-  // lowercase aliases for safety
-  'pending':   { label: 'Pending',   badge: 'bg-amber-50 text-amber-700 border-amber-200',   bar: '#F59E0B', dot: 'bg-amber-400' },
-  'resolved':  { label: 'Resolved',  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', bar: '#10B981', dot: 'bg-emerald-400' },
-  'in_review': { label: 'In Review', badge: 'bg-teal-50 text-teal-700 border-teal-200',       bar: '#0d9488', dot: 'bg-teal-500' },
-  'rejected':  { label: 'Rejected',  badge: 'bg-red-50 text-red-700 border-red-200',           bar: '#ef4444', dot: 'bg-red-400' },
+  'Pending':     { label: 'Pending',     badge: 'bg-amber-50 text-amber-700 border-amber-200',   bar: '#F59E0B', dot: 'bg-amber-400' },
+  'Verified':    { label: 'Verified',    badge: 'bg-sky-50 text-sky-700 border-sky-200',         bar: '#0284c7', dot: 'bg-sky-500' },
+  'In Progress': { label: 'In Progress', badge: 'bg-purple-50 text-purple-700 border-purple-200', bar: '#7c3aed', dot: 'bg-purple-500' },
+  'Resolved':    { label: 'Resolved',    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', bar: '#10B981', dot: 'bg-emerald-400' },
+  'Closed':      { label: 'Closed',      badge: 'bg-slate-50 text-slate-700 border-slate-200',   bar: '#64748b', dot: 'bg-slate-400' },
+  
+  // Legacy mappings for safe fallback usage
+  'pending':     { label: 'Pending',     badge: 'bg-amber-50 text-amber-700 border-amber-200',   bar: '#F59E0B', dot: 'bg-amber-400' },
+  'verified':    { label: 'Verified',    badge: 'bg-sky-50 text-sky-700 border-sky-200',         bar: '#0284c7', dot: 'bg-sky-500' },
+  'in_progress': { label: 'In Progress', badge: 'bg-purple-50 text-purple-700 border-purple-200', bar: '#7c3aed', dot: 'bg-purple-500' },
+  'on_progress': { label: 'In Progress', badge: 'bg-purple-50 text-purple-700 border-purple-200', bar: '#7c3aed', dot: 'bg-purple-500' },
+  'in review':   { label: 'In Progress', badge: 'bg-purple-50 text-purple-700 border-purple-200', bar: '#7c3aed', dot: 'bg-purple-500' },
+  'in_review':   { label: 'In Progress', badge: 'bg-purple-50 text-purple-700 border-purple-200', bar: '#7c3aed', dot: 'bg-purple-500' },
+  'resolved':    { label: 'Resolved',    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', bar: '#10B981', dot: 'bg-emerald-400' },
+  'rejected':    { label: 'Closed',      badge: 'bg-slate-50 text-slate-700 border-slate-200',   bar: '#64748b', dot: 'bg-slate-400' },
+  'closed':      { label: 'Closed',      badge: 'bg-slate-50 text-slate-700 border-slate-200',   bar: '#64748b', dot: 'bg-slate-400' },
 };
 
 export function getStatusConfig(status) {
@@ -172,23 +197,70 @@ export async function enrichReportWithUser(report) {
 // ---------------------------------------------------------------------------
 // Valid status values for the update dropdown
 // ---------------------------------------------------------------------------
-export const REPORT_STATUSES = ['Pending', 'In Review', 'Resolved', 'Rejected'];
+export const REPORT_STATUSES = ['Pending', 'Verified', 'In Progress', 'Resolved', 'Closed'];
 
 export async function updateReportStatus(reportId, newStatus) {
-  if (!REPORT_STATUSES.includes(newStatus)) {
+  const mapped = mapRawStatus(newStatus);
+  if (!REPORT_STATUSES.includes(mapped)) {
     throw new TypeError(
       `Invalid status: "${newStatus}". Must be one of: ${REPORT_STATUSES.join(', ')}`
     );
   }
-  await updateDoc(doc(db, 'reports', reportId), { status: newStatus });
+  const reportRef = doc(db, 'reports', reportId);
+  const reportSnap = await getDoc(reportRef);
+  if (reportSnap.exists() && mapRawStatus(reportSnap.data().status) === 'Closed') {
+    throw new Error('This report has been closed and can no longer be modified.');
+  }
+  await updateDoc(reportRef, { status: mapped });
+}
+
+export async function addReportStatusUpdate(reportId, status, message) {
+  const reportRef = doc(db, 'reports', reportId);
+  const reportSnap = await getDoc(reportRef);
+  if (!reportSnap.exists()) throw new Error('Report not found');
+  
+  const d = reportSnap.data();
+  if (mapRawStatus(d.status) === 'Closed') {
+    throw new Error('This report has been closed and can no longer be modified.');
+  }
+  
+  const updates = d.statusUpdates || [];
+  
+  updates.push({
+    status,
+    message: message || '',
+    timestamp: new Date().toISOString()
+  });
+
+  await updateDoc(reportRef, {
+    status,
+    statusUpdates: updates,
+    ...(status === 'Resolved' ? { resolutionTimestamp: new Date() } : {})
+  });
 }
 
 export async function updateReportMeta(reportId, fields) {
-  await updateDoc(doc(db, 'reports', reportId), fields);
+  const reportRef = doc(db, 'reports', reportId);
+  const reportSnap = await getDoc(reportRef);
+  if (reportSnap.exists() && mapRawStatus(reportSnap.data().status) === 'Closed') {
+    // Only allow updating admin_seen or seenAt
+    const allowedKeys = ['admin_seen', 'seenAt'];
+    const keys = Object.keys(fields);
+    const hasRestricted = keys.some(k => !allowedKeys.includes(k));
+    if (hasRestricted) {
+      throw new Error('This report has been closed and can no longer be modified.');
+    }
+  }
+  await updateDoc(reportRef, fields);
 }
 
 export async function moveReportToTrash(reportId) {
-  await updateDoc(doc(db, 'reports', reportId), {
+  const reportRef = doc(db, 'reports', reportId);
+  const reportSnap = await getDoc(reportRef);
+  if (reportSnap.exists() && mapRawStatus(reportSnap.data().status) === 'Closed') {
+    throw new Error('This report has been closed and can no longer be modified.');
+  }
+  await updateDoc(reportRef, {
     deleted_at: new Date().toISOString(),
   });
 }

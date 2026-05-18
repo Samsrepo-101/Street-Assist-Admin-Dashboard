@@ -74,15 +74,15 @@ const CONTENT_W = PAGE_W - MARGIN * 2;
 
 // Colours (RGB)
 const C = {
-  headerBg:   [30, 30, 30],     // elegant charcoal
+  headerBg:   [17, 94, 58],      // Premium municipal dark green
   headerText: [255, 255, 255],
-  sectionBg:  [240, 240, 240],   // formal gray header bars
-  border:     [200, 200, 200],   // structured gray borders
-  label:      [80, 80, 80],      // clear labeling tone
-  value:      [0, 0, 0],         // deep black for optimal contrast and readability
-  divider:    [220, 220, 220],   // clean horizontal lines
-  footerText: [120, 120, 120],   // discrete footer gray
-  accent:     [0, 0, 0],         // black accent
+  sectionBg:  [240, 248, 243],    // subtle green-tinted background for section bars
+  border:     [200, 218, 206],    // soft green-tinted borders
+  label:      [70, 85, 75],       // legible dark forest labeling
+  value:      [15, 30, 20],       // extremely deep forest black
+  divider:    [215, 230, 220],    // clean soft green horizontal lines
+  footerText: [100, 115, 105],    // discrete green-gray footer
+  accent:     [17, 94, 58],       // premium brand green accent
 };
 
 // ---------------------------------------------------------------------------
@@ -99,6 +99,9 @@ export async function exportReportPDF(report) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const generatedAt = format(new Date(), 'MMMM dd, yyyy · hh:mm a');
   const reportId = report.reportId || report.report_id || report.id || 'UNKNOWN';
+
+  // Fetch the brand logo (streetassist.png) from public
+  const logoBase64 = await fetchImageAsBase64('/streetassist.png');
 
   let y = 0; // current Y cursor
 
@@ -166,15 +169,33 @@ export async function exportReportPDF(report) {
   doc.setFillColor(...C.headerBg);
   doc.rect(0, 0, PAGE_W, 38, 'F');
 
-  // Logo placeholder (small square)
-  doc.setFillColor(255, 255, 255, 0.15);
-  doc.setDrawColor(255, 255, 255);
-  doc.setLineWidth(0.5);
-  doc.rect(MARGIN, 7, 14, 14);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(...C.headerText);
-  doc.text('SA', MARGIN + 4, 16);
+  // Logo image drawing
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, 'PNG', MARGIN, 7, 15, 15);
+    } catch (err) {
+      console.warn('Failed to render logo in PDF, drawing placeholder:', err);
+      // Fallback placeholder
+      doc.setFillColor(255, 255, 255, 0.15);
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.5);
+      doc.rect(MARGIN, 7, 15, 15);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...C.headerText);
+      doc.text('SA', MARGIN + 4, 16);
+    }
+  } else {
+    // Fallback placeholder
+    doc.setFillColor(255, 255, 255, 0.15);
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.5);
+    doc.rect(MARGIN, 7, 15, 15);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(...C.headerText);
+    doc.text('SA', MARGIN + 4, 16);
+  }
 
   // Title
   doc.setFont('helvetica', 'bold');
@@ -389,6 +410,31 @@ export async function exportReportPDF(report) {
       labelValue('Resolved By', report.resolvedByUserId);
     }
     y += 4;
+  }
+
+  // STATUS UPDATE HISTORY
+  const statusUpdates = report.statusUpdates || [];
+  if (statusUpdates.length > 0) {
+    checkPage(20);
+    y = sectionHeading('STATUS UPDATE HISTORY', y);
+
+    for (const upd of statusUpdates) {
+      const timeStr = fmtTs(upd.timestamp);
+      const text = `[${upd.status}]  ${timeStr}\nMessage: ${upd.message || 'No update message.'}`;
+      
+      const lines = doc.splitTextToSize(text, CONTENT_W);
+      const rowH = lines.length * 4.5 + 4;
+      checkPage(rowH);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...C.value);
+      doc.text(lines, MARGIN, y);
+      
+      y += rowH;
+      hRule(y, C.divider);
+      y += 2;
+    }
   }
 
   // =========================================================================

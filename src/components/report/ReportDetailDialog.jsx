@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Calendar, User, Phone, Map, ImageIcon, ChevronLeft, ChevronRight, Tag, Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { updateReportStatus, updateReportMeta, enrichReportWithUser, getStatusConfig, REPORT_STATUSES } from '../../api/reports.js';
+import { updateReportStatus, addReportStatusUpdate, updateReportMeta, enrichReportWithUser, getStatusConfig, REPORT_STATUSES } from '../../api/reports.js';
 import { exportReportPDF } from '../../utils/exportReportPDF.js';
 import { toast } from 'sonner';
 import MapViewModal from '../shared/MapViewModal';
@@ -69,6 +69,7 @@ function AttachmentGallery({ attachments }) {
 export default function ReportDetailDialog({ report, open, onClose }) {
   const [status, setStatus] = useState('Pending');
   const [notes, setNotes] = useState('');
+  const [updateMsg, setUpdateMsg] = useState('');
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
@@ -78,7 +79,15 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     if (!report) return;
     setStatus(report.status ?? 'Pending');
     setNotes(report.adminNotes ?? '');
+    setUpdateMsg('');
     setEnrichedReport(report);
+
+    // Mark as seen immediately upon opening if not already seen
+    if (!report.admin_seen) {
+      updateReportMeta(report.id, { admin_seen: true }).catch(err => {
+        console.error('[ReportDetailDialog] failed to mark report seen:', err);
+      });
+    }
 
     // Enrich with user data only if fullName is missing
     if (!report.fullName && !report.reporter_name && report.userId) {
@@ -89,19 +98,46 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   if (!report || !enrichedReport) return null;
 
   const r = enrichedReport;
+  const isClosed = r.status === 'Closed';
   const statusCfg = getStatusConfig(r.status);
   const hasLocation = r.latitude != null && r.longitude != null;
+
+  const handleSendUpdate = async () => {
+    if (!status) return;
+    setSaving(true);
+    try {
+      await addReportStatusUpdate(r.id, status, updateMsg);
+      if (notes !== (r.adminNotes ?? '')) {
+        await updateReportMeta(r.id, { adminNotes: notes });
+      }
+      toast.success('Report status updated');
+      setUpdateMsg('');
+      onClose();
+    } catch (err) {
+      console.error('[ReportDetailDialog] send update error:', err);
+      toast.error('Failed to send update');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateReportStatus(r.id, status);
+      if (status !== r.status) {
+        if (updateMsg.trim()) {
+          await addReportStatusUpdate(r.id, status, updateMsg);
+        } else {
+          await updateReportStatus(r.id, status);
+        }
+      }
       await updateReportMeta(r.id, {
         adminNotes: notes,
         admin_seen: true,
         ...(status === 'Resolved' ? { resolutionTimestamp: new Date() } : {}),
       });
-      toast.success('Report updated');
+      toast.success('Report saved');
+      setUpdateMsg('');
       onClose();
     } catch (err) {
       console.error('[ReportDetailDialog] save error:', err);
@@ -266,29 +302,109 @@ export default function ReportDetailDialog({ report, open, onClose }) {
               </div>
             )}
 
-            {/* Status update */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Update Status</label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {REPORT_STATUSES.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Lock Indicator Banner */}
+            {isClosed && (
+              <div className="bg-slate-100 border border-slate-200 rounded-xl p-3.5 flex items-start gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-xs">🔒</span>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-bold text-slate-700">Report Locked</p>
+                  <p className="text-[11px] leading-normal text-slate-500">
+                    This report has been closed and can no longer be modified.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Update Status & Send Message Section */}
+            <div className="bg-slate-50 border border-border rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                <span className="text-xs font-bold text-foreground uppercase tracking-wide">Update Status & Progress</span>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">Select Status</label>
+                  <Select value={status} onValueChange={setStatus} disabled={isClosed}>
+                    <SelectTrigger className="h-9 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REPORT_STATUSES.map(s => {
+                        const cfg = getStatusConfig(s);
+                        return (
+                          <SelectItem key={s} value={s}>{cfg.label}</SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">Update Message / Action Taken</label>
+                  <Textarea
+                    value={updateMsg}
+                    onChange={e => setUpdateMsg(e.target.value)}
+                    placeholder="E.g., Dispatched barangay responders and informed Barangay Captain..."
+                    rows={2}
+                    className="text-sm border-border bg-white"
+                    disabled={isClosed}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <Button 
+                  onClick={handleSendUpdate} 
+                  disabled={saving || !status || isClosed}
+                  size="sm"
+                  className="h-8 text-xs font-semibold"
+                >
+                  {saving ? 'Sending...' : 'Send Update'}
+                </Button>
+              </div>
             </div>
 
+            {/* Status Update History Log */}
+            {r.statusUpdates && r.statusUpdates.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-foreground uppercase tracking-wide">Status Update History</span>
+                <div className="border border-border rounded-xl bg-white divide-y divide-border overflow-hidden max-h-48 overflow-y-auto">
+                  {r.statusUpdates.slice().reverse().map((upd, idx) => {
+                    const cfg = getStatusConfig(upd.status);
+                    return (
+                      <div key={idx} className="p-3 text-xs space-y-1 bg-white">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className={`${cfg.badge} text-[10px] px-1.5 py-0`}>
+                            {cfg.label}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground font-medium">
+                            {upd.timestamp ? format(new Date(upd.timestamp), 'MMM dd, yyyy · hh:mm a') : '—'}
+                          </span>
+                        </div>
+                        {upd.message && (
+                          <p className="text-foreground font-medium pl-0.5 mt-1 leading-relaxed">
+                            {upd.message}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Admin notes */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Admin Notes</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Admin Notes</label>
               <Textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Add notes about this report..."
-                rows={3}
+                rows={2}
+                className="text-sm border-border bg-white"
+                disabled={isClosed}
               />
             </div>
 
@@ -314,7 +430,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 )}
               </Button>
               <Button variant="outline" onClick={onClose}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving}>
+              <Button onClick={handleSave} disabled={saving || isClosed}>
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>

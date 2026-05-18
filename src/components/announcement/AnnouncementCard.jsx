@@ -6,12 +6,14 @@ import { MessageCircle, Trash2, MapPin, Calendar, Phone, User, Map } from 'lucid
 import MapViewModal from '../shared/MapViewModal';
 
 const categoryColors = {
-  'Homeless Person': 'bg-violet-100 text-violet-700 border-violet-200',
-  'Stray Dog': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Missing Person': 'bg-violet-100 text-violet-700 border-violet-200',
+  'Missing Animal': 'bg-amber-100 text-amber-700 border-amber-200',
 };
 
 const statusColors = {
-  'Reported': 'bg-red-100 text-red-700',
+  'open': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'closed': 'bg-slate-100 text-slate-700 border-slate-200',
+  'Reported': 'bg-emerald-100 text-emerald-700',
   'Under Response': 'bg-amber-100 text-amber-700',
   'Assisted': 'bg-sky-100 text-sky-700',
   'Closed': 'bg-slate-100 text-slate-700',
@@ -36,11 +38,13 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
           )}
           <div className="flex-1 p-5 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className={categoryColors[announcement.category] || ''}>
-                {announcement.category}
+              <Badge variant="outline" className={categoryColors[announcement.category] || 'bg-slate-100 text-slate-700 border-slate-200'}>
+                {announcement.category || 'Missing Person'}
               </Badge>
               <Badge className={statusColors[announcement.status] || 'bg-slate-100 text-slate-700'}>
-                {announcement.status || 'Reported'}
+                {announcement.status === 'open' ? 'Open' :
+                 announcement.status === 'closed' ? 'Closed' :
+                 (announcement.status || 'Open')}
               </Badge>
             </div>
 

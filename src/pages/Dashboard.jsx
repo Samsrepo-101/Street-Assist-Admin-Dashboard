@@ -26,7 +26,7 @@ export default function Dashboard() {
 
   const total = reports.filter(r => !r.deleted_at).length;
   const pending = reports.filter(r => r.status === 'Pending' && !r.deleted_at).length;
-  const inProgress = reports.filter(r => r.status === 'In Review' && !r.deleted_at).length;
+  const onProgress = reports.filter(r => (r.status === 'In Progress' || r.status === 'Verified') && !r.deleted_at).length;
   const resolved = reports.filter(r => r.status === 'Resolved' && !r.deleted_at).length;
 
   if (reportsLoading) {
@@ -76,8 +76,8 @@ export default function Dashboard() {
           iconBg="bg-amber-50"
         />
         <StatCard
-          label="In Review"
-          value={inProgress}
+          label="On Progress"
+          value={onProgress}
           icon={TrendingUp}
           gradient="bg-gradient-to-r from-teal-400 to-cyan-500"
           textColor="text-teal-600"
@@ -107,7 +107,7 @@ export default function Dashboard() {
             <div className="space-y-3">
               {[
                 { label: 'Resolved', value: resolved, total, color: 'bg-emerald-500' },
-                { label: 'In Review', value: inProgress, total, color: 'bg-teal-400' },
+                { label: 'On Progress', value: onProgress, total, color: 'bg-teal-400' },
                 { label: 'Pending', value: pending, total, color: 'bg-amber-400' },
               ].map(item => (
                 <div key={item.label}>

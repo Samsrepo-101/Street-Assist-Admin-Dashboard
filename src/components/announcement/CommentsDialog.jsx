@@ -15,12 +15,25 @@ export default function CommentsDialog({ announcement, open, onClose }) {
 
   useEffect(() => {
     if (!announcement?.id) return;
+    const isClosed = announcement.status === 'closed' || announcement.status === 'Closed';
+    if (isClosed) {
+      setNewComment('');
+    }
     const unsub = subscribeToComments(announcement.id, setComments);
     return unsub;
-  }, [announcement?.id]);
+  }, [announcement]);
+
+  useEffect(() => {
+    if (open && announcement?.id) {
+      localStorage.setItem(`last_viewed_comments_${announcement.id}`, Date.now().toString());
+      window.dispatchEvent(new Event('storage'));
+    }
+  }, [open, announcement?.id, comments]);
 
   const handlePost = async () => {
     if (!newComment.trim()) return;
+    const isClosed = announcement?.status === 'closed' || announcement?.status === 'Closed';
+    if (isClosed) return;
     try {
       await postComment(announcement.id, {
         userId: currentUser?.uid || 'admin',
@@ -55,17 +68,23 @@ export default function CommentsDialog({ announcement, open, onClose }) {
           ))}
         </div>
 
-        <div className="flex gap-2">
-          <Input
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Write a comment..."
-            onKeyDown={(e) => e.key === 'Enter' && handlePost()}
-          />
-          <Button size="icon" onClick={handlePost}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
+        {announcement?.status === 'closed' || announcement?.status === 'Closed' ? (
+          <div className="text-center py-2.5 px-4 bg-muted text-muted-foreground text-sm font-medium rounded-xl border border-border">
+            Comments are closed for this announcement
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Input
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Write a comment..."
+              onKeyDown={(e) => e.key === 'Enter' && handlePost()}
+            />
+            <Button size="icon" onClick={handlePost}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

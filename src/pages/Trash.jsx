@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { subscribeToReports, updateReportMeta } from '../api/reports.js';
+import { subscribeToReports, updateReportMeta, getStatusConfig } from '../api/reports.js';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../api/firebase.js';
 import { Button } from '@/components/ui/button';
@@ -7,13 +7,6 @@ import { RotateCcw, Trash2, MapPin, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const statusBadge = {
-  'Pending':   'bg-amber-50 text-amber-700 border-amber-200',
-  'In Review': 'bg-teal-50 text-teal-700 border-teal-200',
-  'Resolved':  'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'Rejected':  'bg-red-50 text-red-700 border-red-200',
-};
 
 export default function Trash() {
   const [selected, setSelected] = useState(new Set());
@@ -113,8 +106,8 @@ export default function Trash() {
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" />Deleted {format(new Date(report.deleted_at), 'MMM dd, yyyy')}</span>
                   </div>
                 </div>
-                <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${statusBadge[report.status] ?? 'bg-muted text-muted-foreground border-border'}`}>
-                  {report.status || '—'}
+                <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${getStatusConfig(report.status).badge}`}>
+                  {getStatusConfig(report.status).label}
                 </span>
               </div>
             ))}

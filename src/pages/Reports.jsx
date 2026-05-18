@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { subscribeToReports, moveReportToTrash, getStatusConfig, STATUS_CONFIG } from '../api/reports.js';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +26,7 @@ export default function Reports() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [townFilter, setTownFilter] = useState('All Towns');
-  const [timeFilter, setTimeFilter] = useState('All Time');
+  const [timeFilter, setTimeFilter] = useState('All Dates');
   const [selectedReport, setSelectedReport] = useState(null);
   const [selected, setSelected] = useState(new Set());
 
@@ -39,6 +40,16 @@ export default function Reports() {
     });
     return unsub;
   }, []);
+
+  const location = useLocation();
+  useEffect(() => {
+    if (location.state?.selectedReportId && reports.length > 0) {
+      const found = reports.find(r => r.id === location.state.selectedReportId);
+      if (found) {
+        setSelectedReport(found);
+      }
+    }
+  }, [location.state?.selectedReportId, reports]);
 
   const filtered = useMemo(() => {
     return reports.filter(r => {
@@ -54,14 +65,15 @@ export default function Reports() {
         r.reportType?.toLowerCase().includes(search.toLowerCase());
 
       const matchStatus = statusFilter === 'All' || r.status === statusFilter;
-      const matchCategory = categoryFilter === 'All' || r.category === categoryFilter;
+      const reportCategory = r.category || "Individual";
+      const matchCategory = categoryFilter === 'All' || reportCategory === categoryFilter;
       const matchTown = townFilter === 'All Towns' ||
         (r.locationAddress || r.location_address)?.toLowerCase().includes(townFilter.toLowerCase());
 
       const now = new Date();
       const created = r.timestamp?.toDate ? r.timestamp.toDate() : new Date(0);
       const matchTime =
-        timeFilter === 'All Time'      ? true :
+        timeFilter === 'All Dates'      ? true :
         timeFilter === 'Last 24h'      ? isAfter(created, subDays(now, 1)) :
         timeFilter === 'Last 7 days'   ? isAfter(created, subDays(now, 7)) :
         timeFilter === 'Last 30 days'  ? isAfter(created, subDays(now, 30)) : true;
@@ -148,8 +160,8 @@ export default function Reports() {
     return <div className="space-y-3 w-full">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}</div>;
   }
 
-  const pendingCount = reports.filter(r => r.status === 'Pending' && !r.deleted_at).length;
-  const inReviewCount = reports.filter(r => r.status === 'In Review' && !r.deleted_at).length;
+  const pendingCount = reports.filter(r => r.status === 'pending' && !r.deleted_at).length;
+  const onProgressCount = reports.filter(r => r.status === 'on_progress' && !r.deleted_at).length;
   const newCount = reports.filter(r => !r.admin_seen && !r.deleted_at).length;
 
   return (
@@ -160,7 +172,7 @@ export default function Reports() {
         {[
           { label: 'Total', value: reports.filter(r => !r.deleted_at).length, color: 'bg-primary/10 text-primary' },
           { label: 'Pending', value: pendingCount, color: 'bg-amber-50 text-amber-700' },
-          { label: 'In Review', value: inReviewCount, color: 'bg-teal-50 text-teal-700' },
+          { label: 'On Progress', value: onProgressCount, color: 'bg-teal-50 text-teal-700' },
           { label: 'Unseen', value: newCount, color: 'bg-red-50 text-red-700' },
         ].map(s => (
           <span key={s.label} className={`text-xs font-semibold px-3 py-1.5 rounded-full ${s.color}`}>
@@ -187,8 +199,8 @@ export default function Reports() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All Categories</SelectItem>
-              <SelectItem value="Homeless Person">Homeless Person</SelectItem>
-              <SelectItem value="Stray Dog">Stray Dog</SelectItem>
+              <SelectItem value="Individual">Individual</SelectItem>
+              <SelectItem value="Animal">Animal</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -196,11 +208,12 @@ export default function Reports() {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="All">All Status</SelectItem>
+              <SelectItem value="All">All Statuses</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="In Review">In Review</SelectItem>
+              <SelectItem value="Verified">Verified</SelectItem>
+              <SelectItem value="In Progress">In Progress</SelectItem>
               <SelectItem value="Resolved">Resolved</SelectItem>
-              <SelectItem value="Rejected">Rejected</SelectItem>
+              <SelectItem value="Closed">Closed</SelectItem>
             </SelectContent>
           </Select>
           <Select value={townFilter} onValueChange={setTownFilter}>
@@ -216,7 +229,7 @@ export default function Reports() {
               <SelectValue placeholder="Time" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="All Time">All Time</SelectItem>
+              <SelectItem value="All Dates">All Dates</SelectItem>
               <SelectItem value="Last 24h">Last 24h</SelectItem>
               <SelectItem value="Last 7 days">Last 7 days</SelectItem>
               <SelectItem value="Last 30 days">Last 30 days</SelectItem>

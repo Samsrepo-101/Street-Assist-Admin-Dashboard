@@ -10,6 +10,7 @@ import {
   deleteDoc,
   serverTimestamp,
   collectionGroup,
+  getDoc,
 } from 'firebase/firestore';
 import { toast } from 'sonner';
 
@@ -71,7 +72,7 @@ export function subscribeToAnnouncements(callback) {
  * @returns {Promise<void>}
  * @throws {TypeError} If title is empty or whitespace-only.
  */
-export async function createAnnouncement({ title, content, imageUrl, ...rest }) {
+export async function createAnnouncement({ title, content, imageUrl, status, ...rest }) {
   if (!title || !title.trim()) {
     throw new TypeError('Announcement title cannot be empty');
   }
@@ -85,6 +86,7 @@ export async function createAnnouncement({ title, content, imageUrl, ...rest }) 
     ...(content && content.trim() ? { content: content.trim() } : {}),
     // imageUrl from Cloudinary upload
     ...(imageUrl ? { imageUrl } : {}),
+    status: status ?? 'open',
     ...rest,
     timestamp: serverTimestamp(),
   });
@@ -137,6 +139,15 @@ export function subscribeToComments(announcementId, callback) {
 export async function postComment(announcementId, { userId, text }) {
   if (!announcementId || !String(announcementId).trim()) {
     throw new TypeError('announcementId cannot be empty');
+  }
+
+  const annRef = doc(db, 'announcements', announcementId);
+  const annSnap = await getDoc(annRef);
+  if (annSnap.exists()) {
+    const annData = annSnap.data();
+    if (annData && (annData.status === 'closed' || annData.status === 'Closed')) {
+      throw new Error('Comments are closed for this announcement.');
+    }
   }
 
   await addDoc(collection(db, 'announcements', announcementId, 'comments'), {

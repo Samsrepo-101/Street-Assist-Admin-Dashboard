@@ -3,6 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, FileText, Megaphone, Trash2, Bell, LogOut, X, User } from 'lucide-react';
 import { useAuth } from '../../lib/AuthContext';
 import { subscribeToAdminNotifications } from '../../api/notifications.js';
+import { subscribeToReports } from '../../api/reports.js';
+import { collectionGroup, query, onSnapshot } from 'firebase/firestore';
+import { db } from '../../api/firebase.js';
 
 const navItems = [
   { path: '/',              label: 'Dashboard',    icon: LayoutDashboard },
@@ -28,12 +31,63 @@ export default function Sidebar({ open, onClose }) {
   const location = useLocation();
   const { logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadReportsCount, setUnreadReportsCount] = useState(0);
+  const [unreadCommentsCount, setUnreadCommentsCount] = useState(0);
 
   useEffect(() => {
+    // 1. Unread notifications
     const unsub = subscribeToAdminNotifications(notifs => {
       setUnreadCount(notifs.filter(n => !n.isRead).length);
     });
-    return unsub;
+
+    // 2. Unread reports count (admin_seen: false, excluding deleted)
+    const unsubReports = subscribeToReports(reports => {
+      setUnreadReportsCount(reports.filter(r => !r.admin_seen && !r.deleted_at).length);
+    });
+
+    // 3. Unread comments count across announcements
+    const commentsQ = query(collectionGroup(db, 'comments'));
+    
+    const calculateUnreadComments = (commentsList) => {
+      const unreadAnns = new Set();
+      commentsList.forEach(docSnap => {
+        const comment = docSnap.data();
+        if (comment.userId === 'admin') return;
+
+        const announcementId = docSnap.ref.parent.parent?.id;
+        if (!announcementId) return;
+
+        const timestamp = comment.timestamp;
+        const commentTime = timestamp ? (timestamp.toDate ? timestamp.toDate().getTime() : new Date(timestamp).getTime()) : Date.now();
+
+        const lastViewedStr = localStorage.getItem(`last_viewed_comments_${announcementId}`);
+        const lastViewed = lastViewedStr ? parseInt(lastViewedStr, 10) : 0;
+
+        if (commentTime > lastViewed) {
+          unreadAnns.add(announcementId);
+        }
+      });
+      setUnreadCommentsCount(unreadAnns.size);
+    };
+
+    let activeCommentsDocs = [];
+    const unsubComments = onSnapshot(commentsQ, (snapshot) => {
+      activeCommentsDocs = snapshot.docs;
+      calculateUnreadComments(activeCommentsDocs);
+    });
+
+    // Listen to local marks (e.g. from CommentsDialog.jsx closing/viewing comments)
+    const handleStorageChange = () => {
+      calculateUnreadComments(activeCommentsDocs);
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      unsub();
+      unsubReports();
+      unsubComments();
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   return (
@@ -97,6 +151,16 @@ export default function Sidebar({ open, onClose }) {
                   )}
                 </div>
                 {label}
+                {label === 'All Reports' && unreadReportsCount > 0 && (
+                  <span className="ml-auto h-4 min-w-[16px] px-1.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                    {unreadReportsCount}
+                  </span>
+                )}
+                {label === 'Announcements' && unreadCommentsCount > 0 && (
+                  <span className="ml-auto h-4 min-w-[16px] px-1.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                    {unreadCommentsCount}
+                  </span>
+                )}
               </Link>
             );
           })}

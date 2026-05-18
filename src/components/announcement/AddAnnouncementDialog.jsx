@@ -12,7 +12,7 @@ import { uploadImageToCloudinary } from '../../api/cloudinary.js';
 import MapPickerField from '../shared/MapPickerField';
 
 const EMPTY_FORM = {
-  title: '', category: 'Homeless Person', subtitle: '', name: '', age: '', sex: 'Unknown',
+  title: '', category: 'Missing Person', subtitle: '', name: '', age: '', sex: 'Unknown',
   contact: '', incident_date: '', incident_time: '', location_address: '',
   latitude: null, longitude: null,
 };
@@ -85,7 +85,7 @@ export default function AddAnnouncementDialog({ open, onClose }) {
     try {
       await createAnnouncement({
         ...form,
-        status: 'Reported',
+        status: 'open',
         ...(imageUrl ? { imageUrl } : {}),
       });
       toast.success('Announcement posted successfully');
@@ -132,8 +132,8 @@ export default function AddAnnouncementDialog({ open, onClose }) {
               <Select value={form.category} onValueChange={v => update('category', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Homeless Person">Homeless Person</SelectItem>
-                  <SelectItem value="Stray Dog">Stray Dog</SelectItem>
+                  <SelectItem value="Missing Person">Missing Person</SelectItem>
+                  <SelectItem value="Missing Animal">Missing Animal</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -1,71 +1,90 @@
-/**
- * NotificationPopper
- * Listens to /admin_notifications in real time.
- * When a NEW unread notification arrives (not seen before in this session),
- * it fires a sonner toast with the message and a click-to-navigate action.
- */
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { subscribeToAdminNotifications, markNotificationRead } from '../../api/notifications.js';
+import { collection, collectionGroup, query, onSnapshot } from 'firebase/firestore';
+import { db } from '../../api/firebase.js';
 
 export default function NotificationPopper() {
   const navigate = useNavigate();
-  // Track IDs we've already toasted so we don't re-toast on re-renders
-  const seenIds = useRef(new Set());
-  // Track whether this is the initial load (don't toast existing notifications)
-  const initialLoad = useRef(true);
+  // Track IDs we've already toasted so we don't re-toast on updates
+  const seenReportIds = useRef(new Set());
+  const seenCommentIds = useRef(new Set());
+  
+  // Track session start to only toast new items
+  const sessionStart = useRef(Date.now());
 
   useEffect(() => {
-    const unsub = subscribeToAdminNotifications((notifications) => {
-      if (initialLoad.current) {
-        // On first snapshot, just record existing IDs — don't toast them
-        notifications.forEach(n => seenIds.current.add(n.id));
-        initialLoad.current = false;
-        return;
-      }
+    // 1. Subscribe to reports
+    const reportsQ = query(collection(db, 'reports'));
+    const unsubReports = onSnapshot(reportsQ, (snapshot) => {
+      snapshot.docs.forEach((docSnap) => {
+        const id = docSnap.id;
+        const d = docSnap.data();
+        
+        // Exclude deleted reports
+        if (d.deleted_at) return;
 
-      // On subsequent snapshots, toast any new unread notifications
-      notifications.forEach(notif => {
-        if (seenIds.current.has(notif.id)) return;
-        if (notif.isRead) {
-          seenIds.current.add(notif.id);
-          return;
-        }
+        // Skip if already seen in this session
+        if (seenReportIds.current.has(id)) return;
+        seenReportIds.current.add(id);
 
-        seenIds.current.add(notif.id);
+        const timestamp = d.seenAt ?? d.timestamp ?? null;
+        const docTime = timestamp ? (timestamp.toDate ? timestamp.toDate().getTime() : new Date(timestamp).getTime()) : Date.now();
 
-        const typeLabel =
-          notif.type === 'new_report'    ? 'New Report' :
-          notif.type === 'status_update' ? 'Status Update' :
-          notif.type === 'new_comment'   ? 'New Comment' :
-          'Notification';
-
-        toast(notif.title || typeLabel, {
-          description: notif.message || '',
-          duration: 6000,
-          action: {
-            label: 'View',
-            onClick: () => {
-              markNotificationRead(notif.id).catch(() => {});
-              if (notif.type === 'new_report' || notif.relatedReportId) {
-                navigate('/reports');
-              } else if (notif.type === 'new_comment') {
-                navigate('/announcements');
-              } else {
-                navigate('/notifications');
-              }
+        // Only toast if added after session start
+        if (docTime > sessionStart.current) {
+          toast.success("New Incident Report", {
+            description: d.description || "A new incident was reported.",
+            duration: 8000,
+            action: {
+              label: 'View',
+              onClick: () => {
+                navigate('/reports', { state: { selectedReportId: id } });
+              },
             },
-          },
-          onDismiss: () => {
-            markNotificationRead(notif.id).catch(() => {});
-          },
-        });
+          });
+        }
       });
     });
 
-    return unsub;
+    // 2. Subscribe to comments (collectionGroup)
+    const commentsQ = query(collectionGroup(db, 'comments'));
+    const unsubComments = onSnapshot(commentsQ, (snapshot) => {
+      snapshot.docs.forEach((docSnap) => {
+        const id = docSnap.id;
+        const d = docSnap.data();
+
+        // Skip if already seen in this session
+        if (seenCommentIds.current.has(id)) return;
+        seenCommentIds.current.add(id);
+
+        const timestamp = d.timestamp ?? null;
+        const docTime = timestamp ? (timestamp.toDate ? timestamp.toDate().getTime() : new Date(timestamp).getTime()) : Date.now();
+
+        // Get announcementId from path: /announcements/{announcementId}/comments/{commentId}
+        const announcementId = docSnap.ref.parent.parent?.id;
+
+        // Only toast if added after session start and not authored by the admin
+        if (docTime > sessionStart.current && d.userId !== 'admin' && announcementId) {
+          toast.info("New Comment Added", {
+            description: d.text || "Someone commented on an announcement.",
+            duration: 8000,
+            action: {
+              label: 'View',
+              onClick: () => {
+                navigate('/announcements', { state: { selectedAnnouncementId: announcementId } });
+              },
+            },
+          });
+        }
+      });
+    });
+
+    return () => {
+      unsubReports();
+      unsubComments();
+    };
   }, [navigate]);
 
-  return null; // renders nothing — side-effect only
+  return null; // side-effect only
 }
