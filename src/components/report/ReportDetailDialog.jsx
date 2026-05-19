@@ -110,12 +110,9 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
     if ((newStatus === 'Resolved' || newStatus === 'Closed') && status !== newStatus) {
-      // Delay to ensure the DOM has rendered the file input if it wasn't visible before
-      setTimeout(() => {
-        if (fileInputRef.current) {
-          fileInputRef.current.click();
-        }
-      }, 50);
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
     }
   };
 
@@ -385,37 +382,43 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                   </Select>
                 </div>
 
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => setProofFiles(Array.from(e.target.files))}
+                />
+
                 {(status === 'Closed' || status === 'Resolved') && !isClosed && (
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground">Attach Proof / Evidence (Images)</label>
-                    <Input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      className="text-xs h-9 py-1.5 cursor-pointer bg-white"
-                      onChange={e => setProofFiles(Array.from(e.target.files))}
-                    />
-                    {proofPreviews.length > 0 && (
-                      <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
-                        {proofPreviews.map((src, i) => (
-                          <div key={i} className="relative shrink-0">
-                            <img src={src} alt="Preview" className="h-14 w-14 object-cover rounded-md border border-border shadow-sm" />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newFiles = [...proofFiles];
-                                newFiles.splice(i, 1);
-                                setProofFiles(newFiles);
-                              }}
-                              className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full h-4 w-4 flex items-center justify-center text-[10px] font-bold hover:bg-destructive/90"
-                            >
-                              &times;
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
+                      <p className="font-medium">File chooser opened automatically.</p>
+                      {proofPreviews.length > 0 ? (
+                        <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
+                          {proofPreviews.map((src, i) => (
+                            <div key={i} className="relative shrink-0">
+                              <img src={src} alt="Preview" className="h-14 w-14 object-cover rounded-md border border-border shadow-sm" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newFiles = [...proofFiles];
+                                  newFiles.splice(i, 1);
+                                  setProofFiles(newFiles);
+                                }}
+                                className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full h-4 w-4 flex items-center justify-center text-[10px] font-bold hover:bg-destructive/90"
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-xs text-muted-foreground">No file selected yet. Choose an image to attach as evidence.</p>
+                      )}
+                    </div>
                   </div>
                 )}
                 

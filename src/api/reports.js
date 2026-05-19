@@ -198,7 +198,7 @@ export async function enrichReportWithUser(report) {
 // ---------------------------------------------------------------------------
 // Valid status values for the update dropdown
 // ---------------------------------------------------------------------------
-export const REPORT_STATUSES = ['Pending', 'Verified', 'In Progress', 'Resolved', 'Closed'];
+export const REPORT_STATUSES = ['Pending', 'In Progress', 'Resolved'];
 
 export async function updateReportStatus(reportId, newStatus) {
   const mapped = mapRawStatus(newStatus);

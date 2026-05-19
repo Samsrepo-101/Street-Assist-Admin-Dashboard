@@ -210,10 +210,8 @@ export default function Reports() {
             <SelectContent>
               <SelectItem value="All">All Statuses</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Verified">Verified</SelectItem>
               <SelectItem value="In Progress">In Progress</SelectItem>
               <SelectItem value="Resolved">Resolved</SelectItem>
-              <SelectItem value="Closed">Closed</SelectItem>
             </SelectContent>
           </Select>
           <Select value={townFilter} onValueChange={setTownFilter}>
