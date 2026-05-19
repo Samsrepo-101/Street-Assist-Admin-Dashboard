@@ -64,6 +64,7 @@ export function subscribeToAnnouncements(callback) {
         longitude: document.data().longitude ?? null,
         image_url: document.data().image_url ?? '',
         imageUrl: document.data().imageUrl ?? document.data().image_url ?? '',
+        evidenceUrl: document.data().evidenceUrl ?? '',
         status: mapRawAnnouncementStatus(document.data().status ?? ''),
       }));
 

@@ -57,6 +57,19 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
               </div>
             )}
 
+            {announcement.evidenceUrl && (
+              <div className="rounded-2xl overflow-hidden border border-border bg-slate-50">
+                <img
+                  src={announcement.evidenceUrl}
+                  alt={`${announcement.title} proof`}
+                  className="w-full h-44 object-cover"
+                />
+                <div className="px-3 py-2 text-[11px] text-slate-600 bg-white/80">
+                  Proof image
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
               {announcement.contact && (
                 <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{announcement.contact}</span>

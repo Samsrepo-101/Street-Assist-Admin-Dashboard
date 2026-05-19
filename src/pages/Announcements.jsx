@@ -265,6 +265,18 @@ export default function Announcements() {
                 <span className="text-muted-foreground">Current Status:</span>
                 <span className="font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">{statusTarget.status}</span>
               </div>
+              {statusTarget.evidenceUrl && (
+                <div className="rounded-2xl overflow-hidden border border-border bg-slate-50">
+                  <img
+                    src={statusTarget.evidenceUrl}
+                    alt="Evidence proof"
+                    className="w-full h-44 object-cover"
+                  />
+                  <div className="px-3 py-2 text-[11px] text-slate-600 bg-white/80">
+                    Existing proof image
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {statusTargetIsClosed ? (
