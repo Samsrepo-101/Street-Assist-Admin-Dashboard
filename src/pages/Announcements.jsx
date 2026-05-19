@@ -23,6 +23,7 @@ export default function Announcements() {
   const [evidencePreview, setEvidencePreview] = useState(null);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [evidenceUploadProgress, setEvidenceUploadProgress] = useState(0);
+  const statusTargetIsClosed = statusTarget?.status === 'Case Closed';
   const fileInputRef = useRef(null);
 
   const [search, setSearch] = useState('');
@@ -82,7 +83,7 @@ export default function Announcements() {
   };
 
   const handleUpdateStatus = async () => {
-    if (!statusTarget || !newStatus) return;
+    if (!statusTarget || !newStatus || statusTargetIsClosed) return;
     let evidenceUrl = '';
 
     if (evidenceFile) {
@@ -266,20 +267,26 @@ export default function Announcements() {
               </div>
             </div>
           )}
-          <div className="space-y-1.5">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">New Status:</p>
-            <Select value={newStatus} onValueChange={handleStatusSelection}>
-              <SelectTrigger className="w-full text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Verified by Police">Verified by Police</SelectItem>
-                <SelectItem value="Search Ongoing">Search Ongoing</SelectItem>
-                <SelectItem value="Resolved">Resolved</SelectItem>
-                <SelectItem value="Case Closed">Case Closed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {statusTargetIsClosed ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              This announcement is already closed and cannot be updated.
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">New Status:</p>
+              <Select value={newStatus} onValueChange={handleStatusSelection}>
+                <SelectTrigger className="w-full text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Verified by Police">Verified by Police</SelectItem>
+                  <SelectItem value="Search Ongoing">Search Ongoing</SelectItem>
+                  <SelectItem value="Resolved">Resolved</SelectItem>
+                  <SelectItem value="Case Closed">Case Closed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <input
             ref={fileInputRef}
@@ -319,7 +326,7 @@ export default function Announcements() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setStatusTarget(null)}>Cancel</Button>
-            <Button onClick={handleUpdateStatus} disabled={uploadingEvidence}>Update</Button>
+            <Button onClick={handleUpdateStatus} disabled={uploadingEvidence || statusTargetIsClosed}>Update</Button>
           </div>
         </DialogContent>
       </Dialog>

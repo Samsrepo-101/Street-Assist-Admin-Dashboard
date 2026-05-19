@@ -399,11 +399,11 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 />
 
                 {(status === 'Closed' || status === 'Resolved') && !isClosed && (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Attach Proof / Evidence (Images)</label>
-                        <p className="text-[10px] text-muted-foreground">You can choose multiple images.</p>
+                        <p className="text-[10px] text-muted-foreground">You can choose multiple images. Add more by clicking the button again.</p>
                       </div>
                       <Button
                         variant="outline"
@@ -414,31 +414,41 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                       </Button>
                     </div>
                     <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
-                      <p className="font-medium">File chooser opened automatically.</p>
                       {proofFiles.length > 0 ? (
-                        <div className="mt-2 text-xs text-muted-foreground">{proofFiles.length} image{proofFiles.length !== 1 ? 's' : ''} selected.</div>
+                        <>
+                          <div className="flex items-center justify-between gap-3 mb-3">
+                            <p className="text-sm text-foreground font-medium">{proofFiles.length} image{proofFiles.length !== 1 ? 's' : ''} selected.</p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setProofFiles([]);
+                              }}
+                            >
+                              Clear all
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {proofPreviews.map((src, i) => (
+                              <div key={i} className="relative overflow-hidden rounded-md border border-border bg-muted">
+                                <img src={src} alt={`Proof ${i + 1}`} className="h-24 w-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newFiles = [...proofFiles];
+                                    newFiles.splice(i, 1);
+                                    setProofFiles(newFiles);
+                                  }}
+                                  className="absolute top-1 right-1 bg-destructive text-white rounded-full h-6 w-6 flex items-center justify-center text-[10px] font-bold hover:bg-destructive/90"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
                       ) : (
-                        <p className="mt-2 text-xs text-muted-foreground">No file selected yet. Choose one or more images to attach as evidence.</p>
-                      )}
-                      {proofPreviews.length > 0 && (
-                        <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
-                          {proofPreviews.map((src, i) => (
-                            <div key={i} className="relative shrink-0">
-                              <img src={src} alt={`Proof ${i + 1}`} className="h-14 w-14 object-cover rounded-md border border-border shadow-sm" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newFiles = [...proofFiles];
-                                  newFiles.splice(i, 1);
-                                  setProofFiles(newFiles);
-                                }}
-                                className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full h-4 w-4 flex items-center justify-center text-[10px] font-bold hover:bg-destructive/90"
-                              >
-                                &times;
-                              </button>
-                            </div>
-                          ))}
-                        </div>
+                        <p className="text-xs">No images selected yet.</p>
                       )}
                     </div>
                   </div>
