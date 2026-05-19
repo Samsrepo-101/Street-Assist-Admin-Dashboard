@@ -75,7 +75,7 @@ export default function Announcements() {
     if (value === 'Resolved' || value === 'Case Closed') {
       setEvidenceFile(null);
       setEvidencePreview(null);
-      setTimeout(() => fileInputRef.current?.click(), 0);
+      fileInputRef.current?.click();
     } else {
       setEvidenceFile(null);
       setEvidencePreview(null);
@@ -84,6 +84,10 @@ export default function Announcements() {
 
   const handleUpdateStatus = async () => {
     if (!statusTarget || !newStatus || statusTargetIsClosed) return;
+    if ((newStatus === 'Resolved' || newStatus === 'Case Closed') && !evidenceFile && !statusTarget?.evidenceUrl) {
+      toast.error('Please select a proof image before marking this announcement resolved or closed.');
+      return;
+    }
     let evidenceUrl = '';
 
     if (evidenceFile) {
@@ -310,22 +314,42 @@ export default function Announcements() {
 
           {(newStatus === 'Resolved' || newStatus === 'Case Closed') && (
             <div className="rounded-xl border border-border bg-slate-50 p-3 text-sm text-slate-700">
-              <p className="font-semibold">Evidence required</p>
-              <p className="text-xs text-muted-foreground">As soon as you pick Resolved or Case Closed, the file picker opens for evidence upload.</p>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold">Evidence required</p>
+                  <p className="text-xs text-muted-foreground">As soon as you pick Resolved or Case Closed, the file picker opens for evidence upload.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Choose image
+                </Button>
+              </div>
               {evidenceFile ? (
-                <div className="mt-3 flex items-center gap-3">
-                  <span className="text-sm font-semibold truncate">{evidenceFile.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setEvidenceFile(null);
-                      setEvidencePreview(null);
-                      if (fileInputRef.current) fileInputRef.current.value = '';
-                    }}
-                  >
-                    Remove
-                  </Button>
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold truncate">{evidenceFile.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEvidenceFile(null);
+                        setEvidencePreview(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  {evidencePreview && (
+                    <img
+                      src={evidencePreview}
+                      alt="Selected evidence preview"
+                      className="w-full max-h-52 object-cover rounded-lg border border-border"
+                    />
+                  )}
                 </div>
               ) : (
                 <p className="mt-2 text-xs text-muted-foreground">No file selected yet.</p>
