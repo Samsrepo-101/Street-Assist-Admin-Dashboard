@@ -116,6 +116,13 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     }
   };
 
+  const handleProofSelection = (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+    setProofFiles((prev) => [...prev, ...files]);
+    event.target.value = '';
+  };
+
   if (!report || !enrichedReport) return null;
 
   const r = enrichedReport;
@@ -388,19 +395,36 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                   multiple
                   accept="image/*"
                   className="hidden"
-                  onChange={e => setProofFiles(Array.from(e.target.files))}
+                  onChange={handleProofSelection}
                 />
 
                 {(status === 'Closed' || status === 'Resolved') && !isClosed && (
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">Attach Proof / Evidence (Images)</label>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Attach Proof / Evidence (Images)</label>
+                        <p className="text-[10px] text-muted-foreground">You can choose multiple images.</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Select images
+                      </Button>
+                    </div>
                     <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
                       <p className="font-medium">File chooser opened automatically.</p>
-                      {proofPreviews.length > 0 ? (
+                      {proofFiles.length > 0 ? (
+                        <div className="mt-2 text-xs text-muted-foreground">{proofFiles.length} image{proofFiles.length !== 1 ? 's' : ''} selected.</div>
+                      ) : (
+                        <p className="mt-2 text-xs text-muted-foreground">No file selected yet. Choose one or more images to attach as evidence.</p>
+                      )}
+                      {proofPreviews.length > 0 && (
                         <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
                           {proofPreviews.map((src, i) => (
                             <div key={i} className="relative shrink-0">
-                              <img src={src} alt="Preview" className="h-14 w-14 object-cover rounded-md border border-border shadow-sm" />
+                              <img src={src} alt={`Proof ${i + 1}`} className="h-14 w-14 object-cover rounded-md border border-border shadow-sm" />
                               <button
                                 type="button"
                                 onClick={() => {
@@ -415,8 +439,6 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                             </div>
                           ))}
                         </div>
-                      ) : (
-                        <p className="mt-2 text-xs text-muted-foreground">No file selected yet. Choose an image to attach as evidence.</p>
                       )}
                     </div>
                   </div>
