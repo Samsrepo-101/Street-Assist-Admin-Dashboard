@@ -103,8 +103,8 @@ export default function Profile() {
       setNewAdminPassword('');
       toast.success('New admin account created successfully.');
     } catch (err) {
-      console.error(err);
-      toast.error('Failed to create new admin account.');
+      console.error('[profile] create admin error:', err);
+      toast.error(err?.message || 'Failed to create new admin account.');
     } finally {
       setCreatingAdmin(false);
     }

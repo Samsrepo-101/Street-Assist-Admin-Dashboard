@@ -14,6 +14,14 @@ export default function NotificationPopper() {
   const sessionStart = useRef(Date.now());
 
   useEffect(() => {
+    const getDocumentTimestamp = (docSnap, fallbackField) => {
+      const raw = fallbackField ?? null;
+      if (raw) {
+        return raw.toDate ? raw.toDate().getTime() : new Date(raw).getTime();
+      }
+      return docSnap.createTime ? docSnap.createTime.toMillis() : null;
+    };
+
     // 1. Subscribe to reports
     const reportsQ = query(collection(db, 'reports'));
     const unsubReports = onSnapshot(reportsQ, (snapshot) => {
@@ -28,8 +36,8 @@ export default function NotificationPopper() {
         if (seenReportIds.current.has(id)) return;
         seenReportIds.current.add(id);
 
-        const timestamp = d.seenAt ?? d.timestamp ?? null;
-        const docTime = timestamp ? (timestamp.toDate ? timestamp.toDate().getTime() : new Date(timestamp).getTime()) : Date.now();
+        const docTime = getDocumentTimestamp(docSnap, d.seenAt ?? d.timestamp ?? null);
+        if (!docTime) return;
 
         // Only toast if added after session start
         if (docTime > sessionStart.current) {
@@ -58,8 +66,8 @@ export default function NotificationPopper() {
         if (seenCommentIds.current.has(id)) return;
         seenCommentIds.current.add(id);
 
-        const timestamp = d.timestamp ?? null;
-        const docTime = timestamp ? (timestamp.toDate ? timestamp.toDate().getTime() : new Date(timestamp).getTime()) : Date.now();
+        const docTime = getDocumentTimestamp(docSnap, d.timestamp ?? null);
+        if (!docTime) return;
 
         // Get announcementId from path: /announcements/{announcementId}/comments/{commentId}
         const announcementId = docSnap.ref.parent.parent?.id;

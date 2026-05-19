@@ -7,7 +7,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile as firebaseUpdateProfile,
 } from 'firebase/auth';
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getUserById } from './users.js';
 
 // ---------------------------------------------------------------------------
@@ -82,12 +82,13 @@ function getSecondaryAuth() {
  */
 export async function registerUser({ displayName, email, password, role }) {
   const secondaryAuth = getSecondaryAuth();
+  const secondaryDb = getFirestore(getSecondaryApp());
   const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
   const uid = credential.user.uid;
 
   await firebaseUpdateProfile(credential.user, { displayName });
 
-  await setDoc(doc(db, 'users', uid), {
+  await setDoc(doc(secondaryDb, 'users', uid), {
     displayName,
     email,
     role,
