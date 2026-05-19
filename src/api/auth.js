@@ -83,23 +83,44 @@ function getSecondaryAuth() {
 export async function registerUser({ displayName, email, password, role }) {
   const secondaryAuth = getSecondaryAuth();
   const secondaryDb = getFirestore(getSecondaryApp());
-  const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
-  const uid = credential.user.uid;
+  let credential;
 
-  await firebaseUpdateProfile(credential.user, { displayName });
+  try {
+    credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    const uid = credential.user.uid;
 
-  await setDoc(doc(secondaryDb, 'users', uid), {
-    displayName,
-    email,
-    role,
-    photoURL: '',
-    createdAt: serverTimestamp(),
-    lastSignInAt: serverTimestamp(),
-  });
+    await firebaseUpdateProfile(credential.user, { displayName });
 
-  await firebaseSignOut(secondaryAuth);
+    await setDoc(doc(secondaryDb, 'users', uid), {
+      displayName,
+      email,
+      role,
+      isAdmin: true,
+      userType: 'admin',
+      user_type: 'admin',
+      photoURL: '',
+      createdAt: serverTimestamp(),
+      lastSignInAt: serverTimestamp(),
+    });
 
-  return uid;
+    return uid;
+  } catch (err) {
+    console.error('[auth] registerUser failed', err);
+    if (credential?.user) {
+      try {
+        await credential.user.delete();
+      } catch (cleanupError) {
+        console.error('[auth] failed to delete orphaned user after registration failure', cleanupError);
+      }
+    }
+    throw err;
+  } finally {
+    try {
+      await firebaseSignOut(secondaryAuth);
+    } catch (signOutError) {
+      console.error('[auth] failed to sign out secondary auth', signOutError);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
