@@ -189,7 +189,7 @@ export async function deleteAnnouncement(announcementId) {
  * @param {string} status - The new status value.
  * @returns {Promise<void>}
  */
-export async function updateAnnouncementStatus(announcementId, status) {
+export async function updateAnnouncementStatus(announcementId, status, evidenceUrl = '') {
   const mapped = mapRawAnnouncementStatus(status);
   const annRef = doc(db, 'announcements', announcementId);
   const annSnap = await getDoc(annRef);
@@ -199,5 +199,9 @@ export async function updateAnnouncementStatus(announcementId, status) {
       throw new Error('This case has been closed and can no longer be modified.');
     }
   }
-  await updateDoc(annRef, { status: mapped });
+
+  await updateDoc(annRef, {
+    status: mapped,
+    ...(evidenceUrl ? { evidenceUrl } : {}),
+  });
 }

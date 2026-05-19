@@ -111,6 +111,7 @@ function mapReport(docSnap) {
     // Optional resolution fields
     resolvedByUserId:     d.resolvedByUserId      ?? null,
     resolutionTimestamp:  d.resolutionTimestamp   ?? null,
+    proofImages:          d.proofImages          ?? [],
 
     // Status Update History array
     statusUpdates:        d.statusUpdates        ?? [],
@@ -214,7 +215,7 @@ export async function updateReportStatus(reportId, newStatus) {
   await updateDoc(reportRef, { status: mapped });
 }
 
-export async function addReportStatusUpdate(reportId, status, message) {
+export async function addReportStatusUpdate(reportId, status, message, proofUrls = []) {
   const reportRef = doc(db, 'reports', reportId);
   const reportSnap = await getDoc(reportRef);
   if (!reportSnap.exists()) throw new Error('Report not found');
@@ -229,12 +230,14 @@ export async function addReportStatusUpdate(reportId, status, message) {
   updates.push({
     status,
     message: message || '',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    proofUrls
   });
 
   await updateDoc(reportRef, {
     status,
     statusUpdates: updates,
+    ...(proofUrls && proofUrls.length > 0 ? { proofImages: proofUrls } : {}),
     ...(status === 'Resolved' ? { resolutionTimestamp: new Date() } : {})
   });
 }

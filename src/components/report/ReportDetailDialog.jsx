@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { updateReportStatus, addReportStatusUpdate, updateReportMeta, enrichRepo
 import { exportReportPDF } from '../../utils/exportReportPDF.js';
 import { toast } from 'sonner';
 import MapViewModal from '../shared/MapViewModal';
+import { Input } from '@/components/ui/input';
+import { uploadImageToCloudinary } from '../../api/cloudinary.js';
 
 // ---------------------------------------------------------------------------
 // Attachment gallery — handles single photoUrl or array
@@ -74,12 +76,22 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const [exporting, setExporting] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [enrichedReport, setEnrichedReport] = useState(null);
+  const [proofFiles, setProofFiles] = useState([]);
+  const [proofPreviews, setProofPreviews] = useState([]);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const urls = proofFiles.map(file => URL.createObjectURL(file));
+    setProofPreviews(urls);
+    return () => urls.forEach(url => URL.revokeObjectURL(url));
+  }, [proofFiles]);
 
   useEffect(() => {
     if (!report) return;
     setStatus(report.status ?? 'Pending');
     setNotes(report.adminNotes ?? '');
     setUpdateMsg('');
+    setProofFiles([]);
     setEnrichedReport(report);
 
     // Mark as seen immediately upon opening if not already seen
@@ -95,6 +107,18 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     }
   }, [report]);
 
+  const handleStatusChange = (newStatus) => {
+    setStatus(newStatus);
+    if ((newStatus === 'Resolved' || newStatus === 'Closed') && status !== newStatus) {
+      // Delay to ensure the DOM has rendered the file input if it wasn't visible before
+      setTimeout(() => {
+        if (fileInputRef.current) {
+          fileInputRef.current.click();
+        }
+      }, 50);
+    }
+  };
+
   if (!report || !enrichedReport) return null;
 
   const r = enrichedReport;
@@ -106,12 +130,22 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     if (!status) return;
     setSaving(true);
     try {
-      await addReportStatusUpdate(r.id, status, updateMsg);
+      let proofUrls = [];
+      if ((status === 'Closed' || status === 'Resolved') && proofFiles.length > 0) {
+        toast.info(`Uploading ${proofFiles.length} proof image(s)...`);
+        for (const file of proofFiles) {
+          const url = await uploadImageToCloudinary(file);
+          proofUrls.push(url);
+        }
+      }
+
+      await addReportStatusUpdate(r.id, status, updateMsg, proofUrls);
       if (notes !== (r.adminNotes ?? '')) {
         await updateReportMeta(r.id, { adminNotes: notes });
       }
       toast.success('Report status updated');
       setUpdateMsg('');
+      setProofFiles([]);
       onClose();
     } catch (err) {
       console.error('[ReportDetailDialog] send update error:', err);
@@ -124,9 +158,18 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const handleSave = async () => {
     setSaving(true);
     try {
+      let proofUrls = [];
+      if ((status === 'Closed' || status === 'Resolved') && status !== r.status && proofFiles.length > 0) {
+        toast.info(`Uploading ${proofFiles.length} proof image(s)...`);
+        for (const file of proofFiles) {
+          const url = await uploadImageToCloudinary(file);
+          proofUrls.push(url);
+        }
+      }
+
       if (status !== r.status) {
-        if (updateMsg.trim()) {
-          await addReportStatusUpdate(r.id, status, updateMsg);
+        if (updateMsg.trim() || proofUrls.length > 0) {
+          await addReportStatusUpdate(r.id, status, updateMsg, proofUrls);
         } else {
           await updateReportStatus(r.id, status);
         }
@@ -138,6 +181,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
       });
       toast.success('Report saved');
       setUpdateMsg('');
+      setProofFiles([]);
       onClose();
     } catch (err) {
       console.error('[ReportDetailDialog] save error:', err);
@@ -326,7 +370,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
               <div className="grid grid-cols-1 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-muted-foreground">Select Status</label>
-                  <Select value={status} onValueChange={setStatus} disabled={isClosed}>
+                  <Select value={status} onValueChange={handleStatusChange} disabled={isClosed}>
                     <SelectTrigger className="h-9 bg-white">
                       <SelectValue />
                     </SelectTrigger>
@@ -340,6 +384,40 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {(status === 'Closed' || status === 'Resolved') && !isClosed && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground">Attach Proof / Evidence (Images)</label>
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="text-xs h-9 py-1.5 cursor-pointer bg-white"
+                      onChange={e => setProofFiles(Array.from(e.target.files))}
+                    />
+                    {proofPreviews.length > 0 && (
+                      <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
+                        {proofPreviews.map((src, i) => (
+                          <div key={i} className="relative shrink-0">
+                            <img src={src} alt="Preview" className="h-14 w-14 object-cover rounded-md border border-border shadow-sm" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newFiles = [...proofFiles];
+                                newFiles.splice(i, 1);
+                                setProofFiles(newFiles);
+                              }}
+                              className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full h-4 w-4 flex items-center justify-center text-[10px] font-bold hover:bg-destructive/90"
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-muted-foreground">Update Message / Action Taken</label>
@@ -387,6 +465,15 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                           <p className="text-foreground font-medium pl-0.5 mt-1 leading-relaxed">
                             {upd.message}
                           </p>
+                        )}
+                        {upd.proofUrls && upd.proofUrls.length > 0 && (
+                          <div className="flex gap-2 mt-2 overflow-x-auto pb-1 pl-0.5">
+                            {upd.proofUrls.map((url, i) => (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                                <img src={url} alt="Proof" className="h-10 w-10 object-cover rounded border border-border" />
+                              </a>
+                            ))}
+                          </div>
                         )}
                       </div>
                     );

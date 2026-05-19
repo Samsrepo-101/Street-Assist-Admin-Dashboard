@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { subscribeToAnnouncements, deleteAnnouncement, updateAnnouncementStatus } from '../api/announcement.js';
+import { uploadImageToCloudinary } from '../api/cloudinary.js';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,6 +19,11 @@ export default function Announcements() {
   const [commentsTarget, setCommentsTarget] = useState(null);
   const [statusTarget, setStatusTarget] = useState(null);
   const [newStatus, setNewStatus] = useState('');
+  const [evidenceFile, setEvidenceFile] = useState(null);
+  const [evidencePreview, setEvidencePreview] = useState(null);
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
+  const [evidenceUploadProgress, setEvidenceUploadProgress] = useState(0);
+  const fileInputRef = useRef(null);
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
@@ -56,13 +62,53 @@ export default function Announcements() {
     }
   };
 
+  const handleEvidenceSelected = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setEvidenceFile(file);
+    setEvidencePreview(URL.createObjectURL(file));
+  };
+
+  const handleStatusSelection = (value) => {
+    setNewStatus(value);
+    if (value === 'Resolved' || value === 'Case Closed') {
+      setEvidenceFile(null);
+      setEvidencePreview(null);
+      setTimeout(() => fileInputRef.current?.click(), 0);
+    } else {
+      setEvidenceFile(null);
+      setEvidencePreview(null);
+    }
+  };
+
   const handleUpdateStatus = async () => {
     if (!statusTarget || !newStatus) return;
+    let evidenceUrl = '';
+
+    if (evidenceFile) {
+      setUploadingEvidence(true);
+      try {
+        toast.info('Uploading evidence image...');
+        evidenceUrl = await uploadImageToCloudinary(evidenceFile, (pct) => {
+          setEvidenceUploadProgress(pct);
+        });
+      } catch (err) {
+        console.error('Evidence upload failed:', err);
+        toast.error('Failed to upload evidence image');
+        setUploadingEvidence(false);
+        return;
+      }
+      setUploadingEvidence(false);
+      setEvidenceUploadProgress(0);
+    }
+
     try {
-      await updateAnnouncementStatus(statusTarget.id, newStatus);
+      await updateAnnouncementStatus(statusTarget.id, newStatus, evidenceUrl);
       toast.success('Status updated');
       setStatusTarget(null);
       setNewStatus('');
+      setEvidenceFile(null);
+      setEvidencePreview(null);
     } catch (err) {
       toast.error(err.message || 'Failed to update status');
     }
@@ -222,7 +268,7 @@ export default function Announcements() {
           )}
           <div className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">New Status:</p>
-            <Select value={newStatus} onValueChange={setNewStatus}>
+            <Select value={newStatus} onValueChange={handleStatusSelection}>
               <SelectTrigger className="w-full text-sm">
                 <SelectValue />
               </SelectTrigger>
@@ -234,9 +280,46 @@ export default function Announcements() {
               </SelectContent>
             </Select>
           </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png"
+            className="hidden"
+            onChange={handleEvidenceSelected}
+          />
+
+          {(newStatus === 'Resolved' || newStatus === 'Case Closed') && (
+            <div className="rounded-xl border border-border bg-slate-50 p-3 text-sm text-slate-700">
+              <p className="font-semibold">Evidence required</p>
+              <p className="text-xs text-muted-foreground">As soon as you pick Resolved or Case Closed, the file picker opens for evidence upload.</p>
+              {evidenceFile ? (
+                <div className="mt-3 flex items-center gap-3">
+                  <span className="text-sm font-semibold truncate">{evidenceFile.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEvidenceFile(null);
+                      setEvidencePreview(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">No file selected yet.</p>
+              )}
+              {uploadingEvidence && (
+                <p className="mt-2 text-xs text-muted-foreground">Uploading evidence: {evidenceUploadProgress}%</p>
+              )}
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setStatusTarget(null)}>Cancel</Button>
-            <Button onClick={handleUpdateStatus}>Update</Button>
+            <Button onClick={handleUpdateStatus} disabled={uploadingEvidence}>Update</Button>
           </div>
         </DialogContent>
       </Dialog>
