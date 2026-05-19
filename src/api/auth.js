@@ -1,6 +1,7 @@
-import { auth } from './firebase.js';
+import { auth, getSecondaryApp } from './firebase.js';
 import { db } from './firebase.js';
 import {
+  getAuth as getAuthFromApp,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
@@ -65,6 +66,10 @@ export async function signOut() {
   await firebaseSignOut(auth);
 }
 
+function getSecondaryAuth() {
+  return getAuthFromApp(getSecondaryApp());
+}
+
 // ---------------------------------------------------------------------------
 // Register new account
 // ---------------------------------------------------------------------------
@@ -76,7 +81,8 @@ export async function signOut() {
  * @returns {Promise<string>} New user UID
  */
 export async function registerUser({ displayName, email, password, role }) {
-  const credential = await createUserWithEmailAndPassword(auth, email, password);
+  const secondaryAuth = getSecondaryAuth();
+  const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
   const uid = credential.user.uid;
 
   await firebaseUpdateProfile(credential.user, { displayName });
@@ -89,6 +95,8 @@ export async function registerUser({ displayName, email, password, role }) {
     createdAt: serverTimestamp(),
     lastSignInAt: serverTimestamp(),
   });
+
+  await firebaseSignOut(secondaryAuth);
 
   return uid;
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { getUserById } from '../api/users.js';
-import { updateUserProfile, updateAuthProfile } from '../api/auth.js';
+import { updateUserProfile, updateAuthProfile, registerUser } from '../api/auth.js';
 import { uploadImageToCloudinary } from '../api/cloudinary.js';
 import { toast } from 'sonner';
 import { User, Camera, Loader2, Shield, Clock, Hash, Mail } from 'lucide-react';
@@ -44,6 +44,10 @@ export default function Profile() {
   const [saving, setSaving]             = useState(false);
   const [uploading, setUploading]       = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -70,6 +74,39 @@ export default function Profile() {
       toast.error('Failed to update profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault();
+
+    if (!newAdminName.trim() || !newAdminEmail.trim() || !newAdminPassword.trim()) {
+      toast.error('Please provide name, email, and password for the new admin.');
+      return;
+    }
+
+    if (newAdminPassword.length < 6) {
+      toast.error('Password must be at least 6 characters.');
+      return;
+    }
+
+    setCreatingAdmin(true);
+    try {
+      await registerUser({
+        displayName: newAdminName.trim(),
+        email: newAdminEmail.trim(),
+        password: newAdminPassword,
+        role: 'admin',
+      });
+      setNewAdminName('');
+      setNewAdminEmail('');
+      setNewAdminPassword('');
+      toast.success('New admin account created successfully.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to create new admin account.');
+    } finally {
+      setCreatingAdmin(false);
     }
   };
 
@@ -252,6 +289,78 @@ export default function Profile() {
                 >
                   {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   {saving ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-white border border-border rounded-lg p-5 mt-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Register New Admin</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Add a new administrator account for the dashboard.
+                </p>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-muted/80 px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                Admin only
+              </span>
+            </div>
+
+            <form onSubmit={handleCreateAdmin} className="space-y-4">
+              <div>
+                <label htmlFor="newAdminName" className="block text-xs font-medium text-muted-foreground mb-1">
+                  Full Name
+                </label>
+                <input
+                  id="newAdminName"
+                  type="text"
+                  value={newAdminName}
+                  onChange={(e) => setNewAdminName(e.target.value)}
+                  placeholder="New admin name"
+                  required
+                  className="w-full rounded border border-border bg-white px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="newAdminEmail" className="block text-xs font-medium text-muted-foreground mb-1">
+                  Email Address
+                </label>
+                <input
+                  id="newAdminEmail"
+                  type="email"
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  placeholder="admin@example.com"
+                  required
+                  className="w-full rounded border border-border bg-white px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="newAdminPassword" className="block text-xs font-medium text-muted-foreground mb-1">
+                  Password
+                </label>
+                <input
+                  id="newAdminPassword"
+                  type="password"
+                  value={newAdminPassword}
+                  onChange={(e) => setNewAdminPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  required
+                  className="w-full rounded border border-border bg-white px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                />
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="submit"
+                  disabled={creatingAdmin}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60"
+                >
+                  {creatingAdmin && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {creatingAdmin ? 'Creating…' : 'Create Admin'}
                 </button>
               </div>
             </form>
