@@ -208,6 +208,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
   };
 
   const isSubmitting = saving || uploading;
+  const isClosed = announcement && (announcement.status === 'Case Closed' || announcement.status === 'Resolved');
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -217,6 +218,21 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Closed Case Notice Banner */}
+          {isClosed && (
+            <div className="bg-slate-100 border border-slate-200 rounded-xl p-3.5 flex items-start gap-2.5">
+              <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-xs">ℹ️</span>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-slate-700">Case Closed</p>
+                <p className="text-[11px] leading-normal text-slate-500">
+                  This announcement is closed. As an administrator, the original details are locked, but you can still edit the proof/evidence images.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Basic info */}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
@@ -225,11 +241,12 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
                 value={form.title}
                 onChange={e => update('title', e.target.value)}
                 placeholder="Announcement title"
+                disabled={isClosed}
               />
             </div>
             <div>
               <Label>Category</Label>
-              <Select value={form.category} onValueChange={v => update('category', v)}>
+              <Select value={form.category} onValueChange={v => update('category', v)} disabled={isClosed}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Missing Person">Missing Person</SelectItem>
@@ -239,7 +256,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
             </div>
             <div>
               <Label>Sex</Label>
-              <Select value={form.sex} onValueChange={v => update('sex', v)}>
+              <Select value={form.sex} onValueChange={v => update('sex', v)} disabled={isClosed}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Male">Male</SelectItem>
@@ -250,11 +267,11 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
             </div>
             <div>
               <Label>Subject Name</Label>
-              <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Name" />
+              <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Name" disabled={isClosed} />
             </div>
             <div>
               <Label>Age</Label>
-              <Input value={form.age} onChange={e => update('age', e.target.value)} placeholder="Age" />
+              <Input value={form.age} onChange={e => update('age', e.target.value)} placeholder="Age" disabled={isClosed} />
             </div>
           </div>
 
@@ -265,25 +282,26 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
               onChange={e => update('subtitle', e.target.value)}
               placeholder="Brief description..."
               rows={2}
+              disabled={isClosed}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Contact</Label>
-              <Input value={form.contact} onChange={e => update('contact', e.target.value)} placeholder="Phone or email" />
+              <Input value={form.contact} onChange={e => update('contact', e.target.value)} placeholder="Phone or email" disabled={isClosed} />
             </div>
             <div>
               <Label>Location Address</Label>
-              <Input value={form.location_address} onChange={e => update('location_address', e.target.value)} placeholder="e.g. Brgy. San Jose, Daet" />
+              <Input value={form.location_address} onChange={e => update('location_address', e.target.value)} placeholder="e.g. Brgy. San Jose, Daet" disabled={isClosed} />
             </div>
             <div>
               <Label>Incident Date</Label>
-              <Input type="date" value={form.incident_date} onChange={e => update('incident_date', e.target.value)} />
+              <Input type="date" value={form.incident_date} onChange={e => update('incident_date', e.target.value)} disabled={isClosed} />
             </div>
             <div>
               <Label>Incident Time</Label>
-              <Input type="time" value={form.incident_time} onChange={e => update('incident_time', e.target.value)} />
+              <Input type="time" value={form.incident_time} onChange={e => update('incident_time', e.target.value)} disabled={isClosed} />
             </div>
           </div>
 
@@ -296,6 +314,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
               latitude={form.latitude}
               longitude={form.longitude}
               onChange={(lat, lng) => setForm(p => ({ ...p, latitude: lat, longitude: lng }))}
+              disabled={isClosed}
             />
           </div>
 
@@ -324,18 +343,18 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
                   </div>
                 )}
                 {/* Remove button */}
-                {!uploading && (
+                {!uploading && !isClosed && (
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                    className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/85 flex items-center justify-center text-white transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/40 transition-colors">
+              <label className={`flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-border rounded-lg transition-colors ${isClosed ? 'cursor-not-allowed opacity-60 bg-muted/20' : 'cursor-pointer hover:bg-muted/40'}`}>
                 <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
                 <span className="text-sm text-muted-foreground">Click to upload image</span>
                 <span className="text-xs text-muted-foreground/60">JPG, PNG up to 5MB</span>
@@ -345,6 +364,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
                   accept="image/jpeg,image/jpg,image/png"
                   className="hidden"
                   onChange={handleImageChange}
+                  disabled={isClosed}
                 />
               </label>
             )}

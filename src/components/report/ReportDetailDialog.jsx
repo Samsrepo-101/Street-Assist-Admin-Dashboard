@@ -256,6 +256,15 @@ export default function ReportDetailDialog({ report, open, onClose }) {
               {/* Photo */}
               <AttachmentGallery attachments={r.attachments} />
 
+              <Input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={handleProofSelection}
+              />
+
               {/* Description */}
               <div className="bg-muted/40 rounded-lg p-3 border border-border">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">
@@ -405,101 +414,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                     </Select>
                   </div>
 
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleProofSelection}
-                  />
 
-                  {(status === 'Closed' || status === 'Resolved') && (
-                    <div className="space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Attach Proof / Evidence (Images)</label>
-                          <p className="text-[10px] text-muted-foreground">You can choose multiple images. Add more by clicking the button again.</p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          Select images
-                        </Button>
-                      </div>
-                      <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
-                        {existingProofImages.length > 0 && (
-                          <>
-                            <div className="flex items-center justify-between gap-3 mb-3">
-                              <p className="text-sm text-foreground font-medium">{existingProofImages.length} existing image{existingProofImages.length !== 1 ? 's' : ''}</p>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setExistingProofImages([])}
-                              >
-                                Clear existing
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-                              {existingProofImages.map((src, i) => (
-                                <div key={`existing-${i}`} className="relative overflow-hidden rounded-md border border-border bg-muted">
-                                  <img src={src} alt={`Existing proof ${i + 1}`} className="h-24 w-full object-cover" />
-                                  <button
-                                    type="button"
-                                    onClick={() => setExistingProofImages(prev => prev.filter((_, idx) => idx !== i))}
-                                    className="absolute top-1 right-1 bg-destructive text-white rounded-full h-6 w-6 flex items-center justify-center text-[10px] font-bold hover:bg-destructive/90"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                        {proofFiles.length > 0 ? (
-                          <>
-                            <div className="flex items-center justify-between gap-3 mb-3">
-                              <p className="text-sm text-foreground font-medium">{proofFiles.length} new image{proofFiles.length !== 1 ? 's' : ''} selected.</p>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setProofFiles([]);
-                                }}
-                              >
-                                Clear all
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                              {proofPreviews.map((src, i) => (
-                                <div key={`preview-${i}`} className="relative overflow-hidden rounded-md border border-border bg-muted">
-                                  <img src={src} alt={`Proof ${i + 1}`} className="h-24 w-full object-cover" />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newFiles = [...proofFiles];
-                                      newFiles.splice(i, 1);
-                                      setProofFiles(newFiles);
-                                    }}
-                                    className="absolute top-1 right-1 bg-destructive text-white rounded-full h-6 w-6 flex items-center justify-center text-[10px] font-bold hover:bg-destructive/90"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </>
-                        ) : existingProofImages.length === 0 ? (
-                          <p className="text-xs">No images selected yet.</p>
-                        ) : null}
-                      </div>
-                    </div>
-                  )}
                   
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground">Update Message / Action Taken</label>
@@ -563,6 +478,94 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                   </div>
                 </div>
               )}
+
+              {/* Proof / Evidence Images Section */}
+              <div className="bg-slate-50 border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wide">Proof / Evidence Images</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-8 text-xs font-semibold bg-white"
+                  >
+                    Select images
+                  </Button>
+                </div>
+
+                <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
+                  {existingProofImages.length > 0 && (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-foreground">{existingProofImages.length} existing image(s)</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setExistingProofImages([])}
+                          className="h-6 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10 px-2"
+                        >
+                          Clear existing
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {existingProofImages.map((src, i) => (
+                          <div key={`existing-${i}`} className="relative overflow-hidden border border-border bg-white rounded-md">
+                            <img src={src} alt={`Existing proof ${i + 1}`} className="h-20 w-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setExistingProofImages(prev => prev.filter((_, idx) => idx !== i))}
+                              className="absolute top-1 right-1 bg-black/60 hover:bg-black/85 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] transition-colors"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {proofFiles.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-foreground">{proofFiles.length} new image(s) selected</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setProofFiles([])}
+                          className="h-6 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10 px-2"
+                        >
+                          Clear all
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {proofPreviews.map((src, i) => (
+                          <div key={`preview-${i}`} className="relative overflow-hidden border border-border bg-white rounded-md">
+                            <img src={src} alt={`Proof ${i + 1}`} className="h-20 w-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newFiles = [...proofFiles];
+                                newFiles.splice(i, 1);
+                                setProofFiles(newFiles);
+                              }}
+                              className="absolute top-1 right-1 bg-black/60 hover:bg-black/85 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] transition-colors"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {existingProofImages.length === 0 && proofFiles.length === 0 && (
+                    <p className="text-xs text-center py-4 text-muted-foreground">No proof images selected yet.</p>
+                  )}
+                </div>
+              </div>
 
               {/* Admin notes */}
               <div className="space-y-1.5">

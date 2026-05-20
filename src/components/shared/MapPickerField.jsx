@@ -20,14 +20,16 @@ function ClickHandler({ onPick }) {
   return null;
 }
 
-export default function MapPickerField({ latitude, longitude, onChange }) {
+export default function MapPickerField({ latitude, longitude, onChange, disabled }) {
   const [showMap, setShowMap] = useState(false);
 
   const handlePick = (lat, lng) => {
+    if (disabled) return;
     onChange(lat, lng);
   };
 
   const useMyLocation = () => {
+    if (disabled) return;
     navigator.geolocation.getCurrentPosition(pos => {
       onChange(pos.coords.latitude, pos.coords.longitude);
     });
@@ -38,9 +40,9 @@ export default function MapPickerField({ latitude, longitude, onChange }) {
       <div className="flex items-center gap-2">
         <Button type="button" variant="outline" size="sm" onClick={() => setShowMap(v => !v)}>
           <MapPin className="h-3.5 w-3.5 mr-1.5" />
-          {showMap ? 'Hide Map' : (latitude ? 'Change Pin' : 'Pin on Map')}
+          {showMap ? 'Hide Map' : (latitude ? (disabled ? 'View on Map' : 'Change Pin') : 'Pin on Map')}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={useMyLocation}>
+        <Button type="button" variant="ghost" size="sm" onClick={useMyLocation} disabled={disabled}>
           <Navigation className="h-3.5 w-3.5 mr-1.5" /> Use My Location
         </Button>
         {latitude && longitude && (
@@ -59,7 +61,7 @@ export default function MapPickerField({ latitude, longitude, onChange }) {
               attribution='&copy; OpenStreetMap'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <ClickHandler onPick={handlePick} />
+            {!disabled && <ClickHandler onPick={handlePick} />}
             {latitude && longitude && <Marker position={[latitude, longitude]} />}
           </MapContainer>
         </div>
