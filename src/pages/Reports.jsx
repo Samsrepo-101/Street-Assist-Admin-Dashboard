@@ -252,7 +252,7 @@ export default function Reports() {
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             {filtered.length} Report{filtered.length !== 1 ? 's' : ''} Found
           </p>
-          <p className="text-xs text-muted-foreground">Click any report to view details</p>
+          <p className="text-xs text-muted-foreground">Click any report to view or edit details</p>
         </div>
 
         {filtered.length === 0 ? (
@@ -325,6 +325,17 @@ export default function Reports() {
                     <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${sc.badge}`}>
                       {sc.label}
                     </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs font-semibold"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedReport(report);
+                      }}
+                    >
+                      Edit
+                    </Button>
                     <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
                   </div>
                 </div>
