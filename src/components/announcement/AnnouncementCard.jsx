@@ -90,8 +90,14 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
               )}
             </div>
 
-            <div className="grid gap-2 pt-1 sm:grid-cols-2 lg:grid-cols-3">
-              <Button type="button" variant="outline" size="sm" onClick={() => onViewComments(announcement)}>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onViewComments(announcement)}
+                className="flex-1 min-w-[140px]"
+              >
                 <MessageCircle className="h-3.5 w-3.5 mr-1" /> Comments
               </Button>
               <Button
@@ -100,6 +106,7 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                 size="sm"
                 onClick={() => onUpdateStatus(announcement)}
                 disabled={announcement.status === 'Case Closed'}
+                className="flex-1 min-w-[140px]"
               >
                 Update Status
               </Button>
@@ -109,15 +116,28 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                 size="sm"
                 onClick={() => onEdit(announcement)}
                 disabled={announcement.status === 'Case Closed'}
+                className="flex-1 min-w-[140px]"
               >
                 <Edit className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
               {hasLocation && (
-                <Button type="button" variant="outline" size="sm" onClick={() => setMapOpen(true)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMapOpen(true)}
+                  className="flex-1 min-w-[140px]"
+                >
                   <Map className="h-3.5 w-3.5 mr-1" /> View Location
                 </Button>
               )}
-              <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => onDelete(announcement)}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => onDelete(announcement)}
+              >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>

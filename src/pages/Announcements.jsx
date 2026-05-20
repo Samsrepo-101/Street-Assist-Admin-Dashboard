@@ -24,6 +24,7 @@ export default function Announcements() {
   const [evidencePreview, setEvidencePreview] = useState(null);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [evidenceUploadProgress, setEvidenceUploadProgress] = useState(0);
+  const [isReplacingEvidence, setIsReplacingEvidence] = useState(false);
   const statusTargetIsClosed = statusTarget?.status === 'Case Closed';
   const fileInputRef = useRef(null);
 
@@ -69,17 +70,19 @@ export default function Announcements() {
     if (!file) return;
     setEvidenceFile(file);
     setEvidencePreview(URL.createObjectURL(file));
+    setIsReplacingEvidence(true);
   };
 
   const handleStatusSelection = (value) => {
     setNewStatus(value);
+    setEvidenceFile(null);
+    setEvidencePreview(null);
+    setIsReplacingEvidence(false);
+
     if (value === 'Resolved' || value === 'Case Closed') {
-      setEvidenceFile(null);
-      setEvidencePreview(null);
-      fileInputRef.current?.click();
-    } else {
-      setEvidenceFile(null);
-      setEvidencePreview(null);
+      if (!statusTarget?.evidenceUrl) {
+        fileInputRef.current?.click();
+      }
     }
   };
 
@@ -115,6 +118,7 @@ export default function Announcements() {
       setNewStatus('');
       setEvidenceFile(null);
       setEvidencePreview(null);
+      setIsReplacingEvidence(false);
     } catch (err) {
       toast.error(err.message || 'Failed to update status');
     }
@@ -317,19 +321,24 @@ export default function Announcements() {
 
           {(newStatus === 'Resolved' || newStatus === 'Case Closed') && (
             <div className="rounded-xl border border-border bg-slate-50 p-3 text-sm text-slate-700">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold">Evidence required</p>
-                  <p className="text-xs text-muted-foreground">As soon as you pick Resolved or Case Closed, the file picker opens for evidence upload.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {statusTarget?.evidenceUrl && !isReplacingEvidence
+                      ? 'Existing proof is attached. Replace it only if you want to upload a new image.'
+                      : 'Please attach a proof image before marking this announcement resolved or closed.'}
+                  </p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  Choose image
+                  {statusTarget?.evidenceUrl && !isReplacingEvidence ? 'Replace proof' : 'Choose image'}
                 </Button>
               </div>
+
               {evidenceFile ? (
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center gap-3">
@@ -340,6 +349,7 @@ export default function Announcements() {
                       onClick={() => {
                         setEvidenceFile(null);
                         setEvidencePreview(null);
+                        setIsReplacingEvidence(false);
                         if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
                     >
@@ -354,9 +364,21 @@ export default function Announcements() {
                     />
                   )}
                 </div>
+              ) : statusTarget?.evidenceUrl ? (
+                <div className="mt-3 rounded-2xl overflow-hidden border border-border bg-white">
+                  <img
+                    src={statusTarget.evidenceUrl}
+                    alt="Existing evidence preview"
+                    className="w-full h-52 object-cover"
+                  />
+                  <div className="px-3 py-2 text-[11px] text-slate-600 bg-slate-50">
+                    Current proof image
+                  </div>
+                </div>
               ) : (
                 <p className="mt-2 text-xs text-muted-foreground">No file selected yet.</p>
               )}
+
               {uploadingEvidence && (
                 <p className="mt-2 text-xs text-muted-foreground">Uploading evidence: {evidenceUploadProgress}%</p>
               )}
