@@ -90,11 +90,12 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button variant="outline" size="sm" onClick={() => onViewComments(announcement)}>
+            <div className="grid gap-2 pt-1 sm:grid-cols-2 lg:grid-cols-3">
+              <Button type="button" variant="outline" size="sm" onClick={() => onViewComments(announcement)}>
                 <MessageCircle className="h-3.5 w-3.5 mr-1" /> Comments
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => onUpdateStatus(announcement)}
@@ -103,6 +104,7 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                 Update Status
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => onEdit(announcement)}
@@ -111,11 +113,11 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                 <Edit className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
               {hasLocation && (
-                <Button variant="outline" size="sm" onClick={() => setMapOpen(true)}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setMapOpen(true)}>
                   <Map className="h-3.5 w-3.5 mr-1" /> View Location
                 </Button>
               )}
-              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => onDelete(announcement)}>
+              <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => onDelete(announcement)}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
