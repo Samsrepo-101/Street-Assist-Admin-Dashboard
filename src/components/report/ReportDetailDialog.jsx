@@ -898,6 +898,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 </Button>
               </div>
             </div>
+          )}
         </DialogContent>
       </Dialog>
 
