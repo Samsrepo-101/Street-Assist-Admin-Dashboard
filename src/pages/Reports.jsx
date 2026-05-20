@@ -160,8 +160,8 @@ export default function Reports() {
     return <div className="space-y-3 w-full">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}</div>;
   }
 
-  const pendingCount = reports.filter(r => r.status === 'pending' && !r.deleted_at).length;
-  const onProgressCount = reports.filter(r => r.status === 'on_progress' && !r.deleted_at).length;
+  const pendingCount = reports.filter(r => r.status === 'Pending' && !r.deleted_at).length;
+  const onProgressCount = reports.filter(r => r.status === 'In Progress' && !r.deleted_at).length;
   const newCount = reports.filter(r => !r.admin_seen && !r.deleted_at).length;
 
   return (
