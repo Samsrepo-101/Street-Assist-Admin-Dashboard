@@ -399,7 +399,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground">Select Status</label>
-                    <Select value={status} onValueChange={handleStatusChange}>
+                    <Select value={status} onValueChange={handleStatusChange} disabled={isClosed}>
                       <SelectTrigger className="h-9 bg-white">
                         <SelectValue />
                       </SelectTrigger>
@@ -424,6 +424,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                       placeholder="E.g., Dispatched barangay responders and informed Barangay Captain..."
                       rows={2}
                       className="text-sm border-border bg-white"
+                      disabled={isClosed}
                     />
                   </div>
                 </div>
@@ -432,7 +433,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                   <Button 
                     type="button"
                     onClick={handleSendUpdate} 
-                    disabled={saving || !status}
+                    disabled={isClosed || saving || !status}
                     size="sm"
                     className="h-8 text-xs font-semibold"
                   >

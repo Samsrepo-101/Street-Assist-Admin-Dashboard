@@ -134,15 +134,17 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
               >
                 <MessageCircle className="h-3.5 w-3.5 mr-1" /> Comments
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onUpdateStatus(announcement)}
-                className="flex-1 min-w-[140px]"
-              >
-                Update Status
-              </Button>
+              {announcement.status !== 'Case Closed' && announcement.status !== 'Resolved' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onUpdateStatus(announcement)}
+                  className="flex-1 min-w-[140px]"
+                >
+                  Update Status
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
