@@ -21,10 +21,14 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [proofFile, setProofFile] = useState(null);
+  const [proofPreview, setProofPreview] = useState(null);
+  const [clearProof, setClearProof] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
+  const proofInputRef = useRef(null);
 
   useEffect(() => {
     if (announcement) {
@@ -43,11 +47,15 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
         longitude: announcement.longitude ?? null,
       });
       setImagePreview(announcement.imageUrl || announcement.image_url || null);
+      setProofPreview(announcement.evidenceUrl || null);
     } else {
       setForm(EMPTY_FORM);
       setImagePreview(null);
+      setProofPreview(null);
     }
     setImageFile(null);
+    setProofFile(null);
+    setClearProof(false);
   }, [announcement, open]);
 
   const update = (field, value) => setForm(p => ({ ...p, [field]: value }));
@@ -80,6 +88,33 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleProofChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowed.includes(file.type)) {
+      toast.error('Only JPG and PNG images are supported');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be smaller than 5MB');
+      return;
+    }
+
+    setProofFile(file);
+    setProofPreview(URL.createObjectURL(file));
+    setClearProof(false);
+  };
+
+  const removeProof = () => {
+    setProofFile(null);
+    setProofPreview(null);
+    setClearProof(true);
+    if (proofInputRef.current) proofInputRef.current.value = '';
+  };
+
   const handleSubmit = async () => {
     if (!form.title.trim()) {
       toast.error('Title is required');
@@ -88,6 +123,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
 
     setSaving(true);
     let finalImageUrl = announcement ? (announcement.imageUrl || announcement.image_url || '') : '';
+    let finalProofUrl = announcement ? (announcement.evidenceUrl || '') : '';
 
     // Upload image to Cloudinary first if one was selected
     if (imageFile) {
@@ -106,8 +142,26 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
         setUploadProgress(0);
       }
     } else if (!imagePreview) {
-      // User explicitly cleared/removed the image
       finalImageUrl = '';
+    }
+
+    if (proofFile) {
+      setUploading(true);
+      try {
+        finalProofUrl = await uploadImageToCloudinary(proofFile, (pct) => {
+          setUploadProgress(pct);
+        });
+      } catch (err) {
+        console.error('Proof upload failed:', err);
+        toast.error('Proof upload failed');
+        setSaving(false);
+        return;
+      } finally {
+        setUploading(false);
+        setUploadProgress(0);
+      }
+    } else if (clearProof) {
+      finalProofUrl = '';
     }
 
     try {
@@ -116,6 +170,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
           ...form,
           imageUrl: finalImageUrl,
           image_url: finalImageUrl,
+          evidenceUrl: finalProofUrl,
         });
         toast.success('Announcement updated successfully');
       } else {
@@ -123,6 +178,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
           ...form,
           status: 'Reported',
           imageUrl: finalImageUrl,
+          ...(finalProofUrl ? { evidenceUrl: finalProofUrl } : {}),
         });
         toast.success('Announcement posted successfully');
       }
@@ -286,6 +342,43 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
               </label>
             )}
           </div>
+
+          {announcement && (
+            <div>
+              <Label className="mb-2 block">Proof image <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+              {proofPreview ? (
+                <div className="relative rounded-lg overflow-hidden border border-border">
+                  <img
+                    src={proofPreview}
+                    alt="Proof preview"
+                    className="w-full h-48 object-cover"
+                  />
+                  {!uploading && (
+                    <button
+                      type="button"
+                      onClick={removeProof}
+                      className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/40 transition-colors">
+                  <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                  <span className="text-sm text-muted-foreground">Click to upload proof image</span>
+                  <span className="text-xs text-muted-foreground/60">JPG, PNG up to 5MB</span>
+                  <input
+                    ref={proofInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png"
+                    className="hidden"
+                    onChange={handleProofChange}
+                  />
+                </label>
+              )}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
