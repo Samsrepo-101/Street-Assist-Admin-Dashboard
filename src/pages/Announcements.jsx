@@ -14,20 +14,78 @@ import AnnouncementCard from '../components/announcement/AnnouncementCard';
 import AddAnnouncementDialog from '../components/announcement/AddAnnouncementDialog';
 import CommentsDialog from '../components/announcement/CommentsDialog';
 
+function ProofGallery({ images }) {
+  const [current, setCurrent] = useState(0);
+
+  if (!images || images.length === 0) return null;
+
+  const prev = (e) => {
+    e.stopPropagation();
+    setCurrent(i => (i - 1 + images.length) % images.length);
+  };
+  const next = (e) => {
+    e.stopPropagation();
+    setCurrent(i => (i + 1) % images.length);
+  };
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden border border-border bg-slate-50">
+      <img
+        src={images[current]}
+        alt={`Proof image ${current + 1}`}
+        className="w-full h-44 object-cover"
+      />
+      {images.length > 1 && (
+        <>
+          <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white z-10">
+            <span className="text-xs">◀</span>
+          </button>
+          <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white z-10">
+            <span className="text-xs">▶</span>
+          </button>
+          <span className="absolute bottom-2 right-2 text-[10px] font-semibold bg-black/50 text-white px-2 py-0.5 rounded-full z-10">
+            {current + 1} / {images.length}
+          </span>
+        </>
+      )}
+      <div className="px-3 py-2 text-[11px] text-slate-600 bg-white/80">
+        Proof image{images.length !== 1 ? 's' : ''}
+      </div>
+    </div>
+  );
+}
+
 export default function Announcements() {
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [commentsTarget, setCommentsTarget] = useState(null);
   const [statusTarget, setStatusTarget] = useState(null);
   const [newStatus, setNewStatus] = useState('');
-  const [evidenceFile, setEvidenceFile] = useState(null);
-  const [evidencePreview, setEvidencePreview] = useState(null);
+  const [evidenceFiles, setEvidenceFiles] = useState([]);
+  const [evidencePreviews, setEvidencePreviews] = useState([]);
+  const [existingEvidenceImages, setExistingEvidenceImages] = useState([]);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [evidenceUploadProgress, setEvidenceUploadProgress] = useState(0);
   const [isReplacingEvidence, setIsReplacingEvidence] = useState(false);
   const [clearEvidence, setClearEvidence] = useState(false);
   const statusTargetIsClosed = statusTarget?.status === 'Case Closed';
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const urls = evidenceFiles.map(file => URL.createObjectURL(file));
+    setEvidencePreviews(urls);
+    return () => urls.forEach(url => URL.revokeObjectURL(url));
+  }, [evidenceFiles]);
+
+  useEffect(() => {
+    if (statusTarget) {
+      setExistingEvidenceImages(statusTarget.evidenceUrls || (statusTarget.evidenceUrl ? [statusTarget.evidenceUrl] : []));
+      setEvidenceFiles([]);
+      setEvidencePreviews([]);
+      setIsReplacingEvidence(false);
+      setClearEvidence(false);
+    }
+  }, [statusTarget]);
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
@@ -67,66 +125,82 @@ export default function Announcements() {
   };
 
   const handleEvidenceSelected = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setEvidenceFile(file);
-    setEvidencePreview(URL.createObjectURL(file));
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
+    const validFiles = files.filter(file => {
+      if (!allowed.includes(file.type)) {
+        toast.error(`${file.name} is not supported (JPG/PNG only)`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} is larger than 5MB`);
+        return false;
+      }
+      return true;
+    });
+
+    setEvidenceFiles(prev => [...prev, ...validFiles]);
     setIsReplacingEvidence(true);
     setClearEvidence(false);
+    event.target.value = '';
   };
 
   const handleStatusSelection = (value) => {
     setNewStatus(value);
-    setEvidenceFile(null);
-    setEvidencePreview(null);
+    setEvidenceFiles([]);
+    setEvidencePreviews([]);
+    setExistingEvidenceImages(statusTarget?.evidenceUrls || (statusTarget?.evidenceUrl ? [statusTarget.evidenceUrl] : []));
     setIsReplacingEvidence(false);
     setClearEvidence(false);
 
     if (value === 'Resolved' || value === 'Case Closed') {
-      if (!statusTarget?.evidenceUrl) {
+      const existing = statusTarget?.evidenceUrls || (statusTarget?.evidenceUrl ? [statusTarget.evidenceUrl] : []);
+      if (existing.length === 0) {
         fileInputRef.current?.click();
       }
     }
   };
 
   const handleUpdateStatus = async () => {
-    if (!statusTarget || !newStatus || statusTargetIsClosed) return;
+    if (!statusTarget || !newStatus) return;
     if (
       (newStatus === 'Resolved' || newStatus === 'Case Closed') &&
-      !evidenceFile &&
-      (!statusTarget?.evidenceUrl || clearEvidence)
+      evidenceFiles.length === 0 &&
+      (existingEvidenceImages.length === 0 || clearEvidence)
     ) {
       toast.error('Please select a proof image before marking this announcement resolved or closed.');
       return;
     }
 
-    let evidenceUrl;
-    if (evidenceFile) {
+    let uploadedUrls = [];
+    if (evidenceFiles.length > 0) {
       setUploadingEvidence(true);
       try {
-        toast.info('Uploading evidence image...');
-        evidenceUrl = await uploadImageToCloudinary(evidenceFile, (pct) => {
-          setEvidenceUploadProgress(pct);
-        });
+        toast.info('Uploading evidence image(s)...');
+        for (const file of evidenceFiles) {
+          const url = await uploadImageToCloudinary(file);
+          uploadedUrls.push(url);
+        }
       } catch (err) {
         console.error('Evidence upload failed:', err);
-        toast.error('Failed to upload evidence image');
+        toast.error('Failed to upload evidence image(s)');
         setUploadingEvidence(false);
         return;
       }
       setUploadingEvidence(false);
-      setEvidenceUploadProgress(0);
-    } else if (clearEvidence) {
-      evidenceUrl = null;
     }
 
+    const finalEvidenceUrls = clearEvidence ? [] : [...existingEvidenceImages, ...uploadedUrls];
+
     try {
-      await updateAnnouncementStatus(statusTarget.id, newStatus, evidenceUrl);
+      await updateAnnouncementStatus(statusTarget.id, newStatus, finalEvidenceUrls);
       toast.success('Status updated');
       setStatusTarget(null);
       setNewStatus('');
-      setEvidenceFile(null);
-      setEvidencePreview(null);
+      setEvidenceFiles([]);
+      setExistingEvidenceImages([]);
       setIsReplacingEvidence(false);
     } catch (err) {
       toast.error(err.message || 'Failed to update status');
@@ -285,141 +359,147 @@ export default function Announcements() {
                 <span className="text-muted-foreground">Current Status:</span>
                 <span className="font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">{statusTarget.status}</span>
               </div>
-              {statusTarget.evidenceUrl && (
+              {((statusTarget.evidenceUrls && statusTarget.evidenceUrls.length > 0) || statusTarget.evidenceUrl) && (
                 <div className="rounded-2xl overflow-hidden border border-border bg-slate-50">
-                  <img
-                    src={statusTarget.evidenceUrl}
-                    alt="Evidence proof"
-                    className="w-full h-44 object-cover"
-                  />
-                  <div className="px-3 py-2 text-[11px] text-slate-600 bg-white/80">
-                    Existing proof image
-                  </div>
+                  <ProofGallery images={statusTarget.evidenceUrls && statusTarget.evidenceUrls.length > 0 ? statusTarget.evidenceUrls : [statusTarget.evidenceUrl]} />
                 </div>
               )}
             </div>
           )}
-          {statusTargetIsClosed ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              This announcement is already closed and cannot be updated.
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">New Status:</p>
-              <Select value={newStatus} onValueChange={handleStatusSelection}>
-                <SelectTrigger className="w-full text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Verified by Police">Verified by Police</SelectItem>
-                  <SelectItem value="Search Ongoing">Search Ongoing</SelectItem>
-                  <SelectItem value="Resolved">Resolved</SelectItem>
-                  <SelectItem value="Case Closed">Case Closed</SelectItem>
-                </SelectContent>
-              </Select>
+          {statusTargetIsClosed && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600 mb-2 font-medium">
+              Note: This case is currently closed. You can change its status or update the proof below.
             </div>
           )}
+          <div className="space-y-1.5">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">New Status:</p>
+            <Select value={newStatus} onValueChange={handleStatusSelection}>
+              <SelectTrigger className="w-full text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Verified by Police">Verified by Police</SelectItem>
+                <SelectItem value="Search Ongoing">Search Ongoing</SelectItem>
+                <SelectItem value="Resolved">Resolved</SelectItem>
+                <SelectItem value="Case Closed">Case Closed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <input
             ref={fileInputRef}
             type="file"
+            multiple
             accept="image/jpeg,image/jpg,image/png"
             className="hidden"
             onChange={handleEvidenceSelected}
           />
 
           {(newStatus === 'Resolved' || newStatus === 'Case Closed') && (
-            <div className="rounded-xl border border-border bg-slate-50 p-3 text-sm text-slate-700">
+            <div className="rounded-xl border border-border bg-slate-50 p-3 text-sm text-slate-700 space-y-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-semibold">Evidence required</p>
-                  <p className="text-xs text-muted-foreground">
-                    {statusTarget?.evidenceUrl && !isReplacingEvidence
-                      ? 'Existing proof is attached. Replace it only if you want to upload a new image.'
-                      : 'Please attach a proof image before marking this announcement resolved or closed.'}
+                  <p className="font-semibold text-xs">Evidence required</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Please attach proof image(s) for this announcement.
                   </p>
                 </div>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
+                  className="h-8 text-xs font-semibold"
                 >
-                  {statusTarget?.evidenceUrl && !isReplacingEvidence ? 'Replace proof' : 'Choose image'}
+                  Select Images
                 </Button>
               </div>
 
-              {evidenceFile ? (
+              {existingEvidenceImages.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold truncate">{evidenceFile.name}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">{existingEvidenceImages.length} existing proof image(s)</span>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setEvidenceFile(null);
-                        setEvidencePreview(null);
-                        setIsReplacingEvidence(false);
-                        setClearEvidence(false);
-                        if (fileInputRef.current) fileInputRef.current.value = '';
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                  {evidencePreview && (
-                    <img
-                      src={evidencePreview}
-                      alt="Selected evidence preview"
-                      className="w-full max-h-52 object-cover rounded-lg border border-border"
-                    />
-                  )}
-                </div>
-              ) : clearEvidence ? (
-                <div className="mt-3 rounded-2xl border border-border bg-white p-3 text-sm text-slate-600">
-                  Existing proof will be removed when you save.
-                </div>
-              ) : statusTarget?.evidenceUrl ? (
-                <div className="mt-3 space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-semibold">Current proof image</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEvidenceFile(null);
-                        setEvidencePreview(null);
-                        setIsReplacingEvidence(false);
+                        setExistingEvidenceImages([]);
                         setClearEvidence(true);
-                        if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
+                      className="text-destructive h-7 text-xs hover:bg-destructive/10 px-2"
                     >
-                      Remove existing proof
+                      Clear all
                     </Button>
                   </div>
-                  <div className="rounded-2xl overflow-hidden border border-border bg-white">
-                    <img
-                      src={statusTarget.evidenceUrl}
-                      alt="Existing evidence preview"
-                      className="w-full h-52 object-cover"
-                    />
-                    <div className="px-3 py-2 text-[11px] text-slate-600 bg-slate-50">
-                      Current proof image
-                    </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {existingEvidenceImages.map((src, i) => (
+                      <div key={`existing-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
+                        <img src={src} alt={`Existing proof ${i+1}`} className="h-16 w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExistingEvidenceImages(prev => prev.filter((_, idx) => idx !== i));
+                            setIsReplacingEvidence(true);
+                          }}
+                          className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full h-5 w-5 flex items-center justify-center text-[8px]"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ) : (
-                <p className="mt-2 text-xs text-muted-foreground">No file selected yet.</p>
+              )}
+
+              {evidenceFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">{evidenceFiles.length} new image(s) selected</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEvidenceFiles([])}
+                      className="text-destructive h-7 text-xs hover:bg-destructive/10 px-2"
+                    >
+                      Clear new
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {evidencePreviews.map((src, i) => (
+                      <div key={`preview-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
+                        <img src={src} alt={`New proof ${i+1}`} className="h-16 w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newFiles = [...evidenceFiles];
+                            newFiles.splice(i, 1);
+                            setEvidenceFiles(newFiles);
+                          }}
+                          className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full h-5 w-5 flex items-center justify-center text-[8px]"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {existingEvidenceImages.length === 0 && evidenceFiles.length === 0 && (
+                <p className="mt-2 text-xs text-muted-foreground text-center py-2">No proof images selected yet.</p>
               )}
 
               {uploadingEvidence && (
-                <p className="mt-2 text-xs text-muted-foreground">Uploading evidence: {evidenceUploadProgress}%</p>
+                <p className="mt-2 text-xs text-muted-foreground animate-pulse text-center">Uploading evidence...</p>
               )}
             </div>
           )}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setStatusTarget(null)}>Cancel</Button>
-            <Button onClick={handleUpdateStatus} disabled={uploadingEvidence || statusTargetIsClosed}>Update</Button>
+            <Button onClick={handleUpdateStatus} disabled={uploadingEvidence}>Update</Button>
           </div>
         </DialogContent>
       </Dialog>

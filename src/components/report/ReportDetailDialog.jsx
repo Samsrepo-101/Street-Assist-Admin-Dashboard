@@ -366,16 +366,16 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 </div>
               )}
 
-              {/* Lock Indicator Banner */}
+              {/* Closed Case Notice Banner */}
               {isClosed && (
                 <div className="bg-slate-100 border border-slate-200 rounded-xl p-3.5 flex items-start gap-2.5">
                   <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-xs">🔒</span>
+                    <span className="text-xs">ℹ️</span>
                   </div>
                   <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-slate-700">Report Locked</p>
+                    <p className="text-xs font-bold text-slate-700">Case Closed</p>
                     <p className="text-[11px] leading-normal text-slate-500">
-                      This report has been closed and can no longer be modified.
+                      This report is closed, but as an administrator, you can still update its status, add proof/evidence, or edit notes.
                     </p>
                   </div>
                 </div>
@@ -390,7 +390,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground">Select Status</label>
-                    <Select value={status} onValueChange={handleStatusChange} disabled={isClosed}>
+                    <Select value={status} onValueChange={handleStatusChange}>
                       <SelectTrigger className="h-9 bg-white">
                         <SelectValue />
                       </SelectTrigger>
@@ -414,7 +414,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                     onChange={handleProofSelection}
                   />
 
-                  {(status === 'Closed' || status === 'Resolved') && !isClosed && (
+                  {(status === 'Closed' || status === 'Resolved') && (
                     <div className="space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div>
@@ -422,6 +422,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                           <p className="text-[10px] text-muted-foreground">You can choose multiple images. Add more by clicking the button again.</p>
                         </div>
                         <Button
+                          type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => fileInputRef.current?.click()}
@@ -435,6 +436,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                             <div className="flex items-center justify-between gap-3 mb-3">
                               <p className="text-sm text-foreground font-medium">{existingProofImages.length} existing image{existingProofImages.length !== 1 ? 's' : ''}</p>
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setExistingProofImages([])}
@@ -463,6 +465,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                             <div className="flex items-center justify-between gap-3 mb-3">
                               <p className="text-sm text-foreground font-medium">{proofFiles.length} new image{proofFiles.length !== 1 ? 's' : ''} selected.</p>
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
@@ -506,15 +509,15 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                       placeholder="E.g., Dispatched barangay responders and informed Barangay Captain..."
                       rows={2}
                       className="text-sm border-border bg-white"
-                      disabled={isClosed}
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-end pt-1">
                   <Button 
+                    type="button"
                     onClick={handleSendUpdate} 
-                    disabled={saving || !status || isClosed}
+                    disabled={saving || !status}
                     size="sm"
                     className="h-8 text-xs font-semibold"
                   >
@@ -570,7 +573,6 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                   placeholder="Add notes about this report..."
                   rows={2}
                   className="text-sm border-border bg-white"
-                  disabled={isClosed}
                 />
               </div>
 
@@ -595,8 +597,8 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                     </>
                   )}
                 </Button>
-                <Button variant="outline" onClick={onClose}>Cancel</Button>
-                <Button onClick={handleSave} disabled={saving || isClosed}>
+                <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+                <Button type="button" onClick={handleSave} disabled={saving}>
                   {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>

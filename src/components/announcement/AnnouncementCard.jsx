@@ -2,8 +2,51 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Trash2, MapPin, Calendar, Phone, User, Map, Edit } from 'lucide-react';
+import { MessageCircle, Trash2, MapPin, Calendar, Phone, User, Map, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
 import MapViewModal from '../shared/MapViewModal';
+
+function ProofGallery({ images }) {
+  const [current, setCurrent] = useState(0);
+
+  if (!images || images.length === 0) return null;
+
+  const prev = (e) => {
+    e.stopPropagation();
+    setCurrent(i => (i - 1 + images.length) % images.length);
+  };
+  const next = (e) => {
+    e.stopPropagation();
+    setCurrent(i => (i + 1) % images.length);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="relative rounded-2xl overflow-hidden border border-border bg-slate-50">
+        <img
+          src={images[current]}
+          alt={`Proof image ${current + 1}`}
+          className="w-full h-44 object-cover"
+        />
+        {images.length > 1 && (
+          <>
+            <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white z-10">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white z-10">
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <span className="absolute bottom-2 right-2 text-[10px] font-semibold bg-black/50 text-white px-2 py-0.5 rounded-full z-10">
+              {current + 1} / {images.length}
+            </span>
+          </>
+        )}
+        <div className="px-3 py-2 text-[11px] text-slate-600 bg-white/80">
+          Proof image{images.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const categoryColors = {
   'Missing Person': 'bg-violet-100 text-violet-700 border-violet-200',
@@ -57,17 +100,8 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
               </div>
             )}
 
-            {announcement.evidenceUrl && (
-              <div className="rounded-2xl overflow-hidden border border-border bg-slate-50">
-                <img
-                  src={announcement.evidenceUrl}
-                  alt={`${announcement.title} proof`}
-                  className="w-full h-44 object-cover"
-                />
-                <div className="px-3 py-2 text-[11px] text-slate-600 bg-white/80">
-                  Proof image
-                </div>
-              </div>
+            {((announcement.evidenceUrls && announcement.evidenceUrls.length > 0) || announcement.evidenceUrl) && (
+              <ProofGallery images={announcement.evidenceUrls && announcement.evidenceUrls.length > 0 ? announcement.evidenceUrls : [announcement.evidenceUrl]} />
             )}
 
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -105,7 +139,6 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                 variant="outline"
                 size="sm"
                 onClick={() => onUpdateStatus(announcement)}
-                disabled={announcement.status === 'Case Closed'}
                 className="flex-1 min-w-[140px]"
               >
                 Update Status
@@ -115,7 +148,6 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                 variant="outline"
                 size="sm"
                 onClick={() => onEdit(announcement)}
-                disabled={announcement.status === 'Case Closed'}
                 className="flex-1 min-w-[140px]"
               >
                 <Edit className="h-3.5 w-3.5 mr-1" /> Edit

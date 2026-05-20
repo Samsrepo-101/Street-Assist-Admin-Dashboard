@@ -66,6 +66,7 @@ export function subscribeToAnnouncements(callback) {
         image_url: document.data().image_url ?? '',
         imageUrl: document.data().imageUrl ?? document.data().image_url ?? '',
         evidenceUrl: document.data().evidenceUrl ?? '',
+        evidenceUrls: document.data().evidenceUrls ?? (document.data().evidenceUrl ? [document.data().evidenceUrl] : []),
         status: mapRawAnnouncementStatus(document.data().status ?? ''),
       }));
 
@@ -191,22 +192,17 @@ export async function deleteAnnouncement(announcementId) {
  * @param {string} status - The new status value.
  * @returns {Promise<void>}
  */
-export async function updateAnnouncementStatus(announcementId, status, evidenceUrl = '') {
+export async function updateAnnouncementStatus(announcementId, status, evidenceUrls = []) {
   const mapped = mapRawAnnouncementStatus(status);
   const annRef = doc(db, 'announcements', announcementId);
-  const annSnap = await getDoc(annRef);
-  if (annSnap.exists()) {
-    const annData = annSnap.data();
-    if (annData && mapRawAnnouncementStatus(annData.status) === 'Case Closed') {
-      throw new Error('This case has been closed and can no longer be modified.');
-    }
-  }
 
   const updatePayload = { status: mapped };
-  if (evidenceUrl === null) {
+  if (evidenceUrls === null || (Array.isArray(evidenceUrls) && evidenceUrls.length === 0)) {
     updatePayload.evidenceUrl = deleteField();
-  } else if (evidenceUrl) {
-    updatePayload.evidenceUrl = evidenceUrl;
+    updatePayload.evidenceUrls = deleteField();
+  } else {
+    updatePayload.evidenceUrls = Array.isArray(evidenceUrls) ? evidenceUrls : [evidenceUrls];
+    updatePayload.evidenceUrl = Array.isArray(evidenceUrls) ? (evidenceUrls[0] || '') : evidenceUrls;
   }
 
   await updateDoc(annRef, updatePayload);
@@ -226,13 +222,6 @@ export async function updateAnnouncement(announcementId, fields) {
   }
 
   const annRef = doc(db, 'announcements', announcementId);
-  const annSnap = await getDoc(annRef);
-  if (annSnap.exists()) {
-    const annData = annSnap.data();
-    if (annData && mapRawAnnouncementStatus(annData.status) === 'Case Closed') {
-      throw new Error('This case has been closed and can no longer be modified.');
-    }
-  }
 
   const updatedData = { ...fields };
   if (fields.title) updatedData.title = fields.title.trim();

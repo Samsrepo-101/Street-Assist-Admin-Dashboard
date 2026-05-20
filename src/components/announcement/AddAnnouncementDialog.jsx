@@ -21,14 +21,20 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [proofFile, setProofFile] = useState(null);
-  const [proofPreview, setProofPreview] = useState(null);
-  const [clearProof, setClearProof] = useState(false);
+  const [proofFiles, setProofFiles] = useState([]);
+  const [proofPreviews, setProofPreviews] = useState([]);
+  const [existingProofImages, setExistingProofImages] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
   const proofInputRef = useRef(null);
+
+  useEffect(() => {
+    const urls = proofFiles.map(file => URL.createObjectURL(file));
+    setProofPreviews(urls);
+    return () => urls.forEach(url => URL.revokeObjectURL(url));
+  }, [proofFiles]);
 
   useEffect(() => {
     if (announcement) {
@@ -47,15 +53,14 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
         longitude: announcement.longitude ?? null,
       });
       setImagePreview(announcement.imageUrl || announcement.image_url || null);
-      setProofPreview(announcement.evidenceUrl || null);
+      setExistingProofImages(announcement.evidenceUrls || (announcement.evidenceUrl ? [announcement.evidenceUrl] : []));
     } else {
       setForm(EMPTY_FORM);
       setImagePreview(null);
-      setProofPreview(null);
+      setExistingProofImages([]);
     }
     setImageFile(null);
-    setProofFile(null);
-    setClearProof(false);
+    setProofFiles([]);
   }, [announcement, open]);
 
   const update = (field, value) => setForm(p => ({ ...p, [field]: value }));
@@ -89,30 +94,24 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
   };
 
   const handleProofChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowed.includes(file.type)) {
-      toast.error('Only JPG and PNG images are supported');
-      return;
-    }
+    const validFiles = files.filter(file => {
+      if (!allowed.includes(file.type)) {
+        toast.error(`${file.name} is not supported (JPG/PNG only)`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} is larger than 5MB`);
+        return false;
+      }
+      return true;
+    });
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be smaller than 5MB');
-      return;
-    }
-
-    setProofFile(file);
-    setProofPreview(URL.createObjectURL(file));
-    setClearProof(false);
-  };
-
-  const removeProof = () => {
-    setProofFile(null);
-    setProofPreview(null);
-    setClearProof(true);
-    if (proofInputRef.current) proofInputRef.current.value = '';
+    setProofFiles(prev => [...prev, ...validFiles]);
+    e.target.value = '';
   };
 
   const handleSubmit = async () => {
@@ -123,7 +122,6 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
 
     setSaving(true);
     let finalImageUrl = announcement ? (announcement.imageUrl || announcement.image_url || '') : '';
-    let finalProofUrl = announcement ? (announcement.evidenceUrl || '') : '';
 
     // Upload image to Cloudinary first if one was selected
     if (imageFile) {
@@ -136,6 +134,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
         console.error('Image upload failed:', err);
         toast.error('Image upload failed');
         setSaving(false);
+        setUploading(false);
         return;
       } finally {
         setUploading(false);
@@ -145,24 +144,26 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
       finalImageUrl = '';
     }
 
-    if (proofFile) {
+    let uploadedUrls = [];
+    if (proofFiles.length > 0) {
       setUploading(true);
       try {
-        finalProofUrl = await uploadImageToCloudinary(proofFile, (pct) => {
-          setUploadProgress(pct);
-        });
+        for (const file of proofFiles) {
+          const url = await uploadImageToCloudinary(file);
+          uploadedUrls.push(url);
+        }
       } catch (err) {
         console.error('Proof upload failed:', err);
         toast.error('Proof upload failed');
         setSaving(false);
+        setUploading(false);
         return;
       } finally {
         setUploading(false);
-        setUploadProgress(0);
       }
-    } else if (clearProof) {
-      finalProofUrl = '';
     }
+
+    const finalEvidenceUrls = [...existingProofImages, ...uploadedUrls];
 
     try {
       if (announcement) {
@@ -170,7 +171,8 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
           ...form,
           imageUrl: finalImageUrl,
           image_url: finalImageUrl,
-          evidenceUrl: finalProofUrl,
+          evidenceUrl: finalEvidenceUrls[0] || '',
+          evidenceUrls: finalEvidenceUrls,
         });
         toast.success('Announcement updated successfully');
       } else {
@@ -178,12 +180,15 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
           ...form,
           status: 'Reported',
           imageUrl: finalImageUrl,
-          ...(finalProofUrl ? { evidenceUrl: finalProofUrl } : {}),
+          evidenceUrl: finalEvidenceUrls[0] || '',
+          evidenceUrls: finalEvidenceUrls,
         });
         toast.success('Announcement posted successfully');
       }
       setForm(EMPTY_FORM);
       removeImage();
+      setProofFiles([]);
+      setExistingProofImages([]);
       onClose();
     } catch (err) {
       console.error('Failed to save announcement:', err);
@@ -197,6 +202,8 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
     if (saving || uploading) return; // prevent closing mid-submit
     setForm(EMPTY_FORM);
     removeImage();
+    setProofFiles([]);
+    setExistingProofImages([]);
     onClose();
   };
 
@@ -344,39 +351,99 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
           </div>
 
           {announcement && (
-            <div>
-              <Label className="mb-2 block">Proof image <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
-              {proofPreview ? (
-                <div className="relative rounded-lg overflow-hidden border border-border">
-                  <img
-                    src={proofPreview}
-                    alt="Proof preview"
-                    className="w-full h-48 object-cover"
-                  />
-                  {!uploading && (
-                    <button
-                      type="button"
-                      onClick={removeProof}
-                      className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/40 transition-colors">
-                  <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
-                  <span className="text-sm text-muted-foreground">Click to upload proof image</span>
-                  <span className="text-xs text-muted-foreground/60">JPG, PNG up to 5MB</span>
-                  <input
-                    ref={proofInputRef}
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png"
-                    className="hidden"
-                    onChange={handleProofChange}
-                  />
-                </label>
-              )}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Proof / Evidence Images <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => proofInputRef.current?.click()}
+                  className="h-8 text-xs font-semibold"
+                >
+                  <ImageIcon className="h-3.5 w-3.5 mr-1" />
+                  Select Images
+                </Button>
+              </div>
+              <input
+                ref={proofInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/jpg,image/png"
+                className="hidden"
+                onChange={handleProofChange}
+              />
+              <div className="rounded-lg border border-dashed border-border bg-slate-50 p-3 text-sm text-slate-600">
+                {existingProofImages.length > 0 && (
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-foreground">{existingProofImages.length} existing image(s)</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExistingProofImages([])}
+                        className="h-6 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10 px-2"
+                      >
+                        Clear existing
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {existingProofImages.map((src, i) => (
+                        <div key={`existing-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
+                          <img src={src} alt={`Existing proof ${i+1}`} className="h-20 w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setExistingProofImages(prev => prev.filter((_, idx) => idx !== i))}
+                            className="absolute top-1 right-1 bg-black/60 hover:bg-black/85 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {proofFiles.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-foreground">{proofFiles.length} new image(s) selected</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setProofFiles([])}
+                        className="h-6 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10 px-2"
+                      >
+                        Clear new
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {proofPreviews.map((src, i) => (
+                        <div key={`preview-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
+                          <img src={src} alt={`New proof ${i+1}`} className="h-20 w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newFiles = [...proofFiles];
+                              newFiles.splice(i, 1);
+                              setProofFiles(newFiles);
+                            }}
+                            className="absolute top-1 right-1 bg-black/60 hover:bg-black/85 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {existingProofImages.length === 0 && proofFiles.length === 0 && (
+                  <p className="text-xs text-center py-4 text-muted-foreground">No proof images selected yet.</p>
+                )}
+              </div>
             </div>
           )}
 

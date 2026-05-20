@@ -208,10 +208,6 @@ export async function updateReportStatus(reportId, newStatus) {
     );
   }
   const reportRef = doc(db, 'reports', reportId);
-  const reportSnap = await getDoc(reportRef);
-  if (reportSnap.exists() && mapRawStatus(reportSnap.data().status) === 'Closed') {
-    throw new Error('This report has been closed and can no longer be modified.');
-  }
   await updateDoc(reportRef, { status: mapped });
 }
 
@@ -221,10 +217,6 @@ export async function addReportStatusUpdate(reportId, status, message, proofUrls
   if (!reportSnap.exists()) throw new Error('Report not found');
   
   const d = reportSnap.data();
-  if (mapRawStatus(d.status) === 'Closed') {
-    throw new Error('This report has been closed and can no longer be modified.');
-  }
-  
   const updates = d.statusUpdates || [];
   
   updates.push({
@@ -244,25 +236,11 @@ export async function addReportStatusUpdate(reportId, status, message, proofUrls
 
 export async function updateReportMeta(reportId, fields) {
   const reportRef = doc(db, 'reports', reportId);
-  const reportSnap = await getDoc(reportRef);
-  if (reportSnap.exists() && mapRawStatus(reportSnap.data().status) === 'Closed') {
-    // Only allow updating admin_seen or seenAt
-    const allowedKeys = ['admin_seen', 'seenAt'];
-    const keys = Object.keys(fields);
-    const hasRestricted = keys.some(k => !allowedKeys.includes(k));
-    if (hasRestricted) {
-      throw new Error('This report has been closed and can no longer be modified.');
-    }
-  }
   await updateDoc(reportRef, fields);
 }
 
 export async function moveReportToTrash(reportId) {
   const reportRef = doc(db, 'reports', reportId);
-  const reportSnap = await getDoc(reportRef);
-  if (reportSnap.exists() && mapRawStatus(reportSnap.data().status) === 'Closed') {
-    throw new Error('This report has been closed and can no longer be modified.');
-  }
   await updateDoc(reportRef, {
     deleted_at: new Date().toISOString(),
   });
