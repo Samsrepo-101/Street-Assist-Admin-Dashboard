@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react';
-import { createAnnouncement } from '../../api/announcement.js';
+import { createAnnouncement, updateAnnouncement } from '../../api/announcement.js';
 import { uploadImageToCloudinary } from '../../api/cloudinary.js';
 import MapPickerField from '../shared/MapPickerField';
 
@@ -17,7 +17,7 @@ const EMPTY_FORM = {
   latitude: null, longitude: null,
 };
 
-export default function AddAnnouncementDialog({ open, onClose }) {
+export default function AddAnnouncementDialog({ open, onClose, announcement }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -25,6 +25,30 @@ export default function AddAnnouncementDialog({ open, onClose }) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (announcement) {
+      setForm({
+        title: announcement.title || '',
+        category: announcement.category || 'Missing Person',
+        subtitle: announcement.subtitle || '',
+        name: announcement.name || '',
+        age: announcement.age || '',
+        sex: announcement.sex || 'Unknown',
+        contact: announcement.contact || '',
+        incident_date: announcement.incident_date || '',
+        incident_time: announcement.incident_time || '',
+        location_address: announcement.location_address || '',
+        latitude: announcement.latitude ?? null,
+        longitude: announcement.longitude ?? null,
+      });
+      setImagePreview(announcement.imageUrl || announcement.image_url || null);
+    } else {
+      setForm(EMPTY_FORM);
+      setImagePreview(null);
+    }
+    setImageFile(null);
+  }, [announcement, open]);
 
   const update = (field, value) => setForm(p => ({ ...p, [field]: value }));
 
@@ -63,38 +87,51 @@ export default function AddAnnouncementDialog({ open, onClose }) {
     }
 
     setSaving(true);
-    let imageUrl = '';
+    let finalImageUrl = announcement ? (announcement.imageUrl || announcement.image_url || '') : '';
 
     // Upload image to Cloudinary first if one was selected
     if (imageFile) {
       setUploading(true);
       try {
-        imageUrl = await uploadImageToCloudinary(imageFile, (pct) => {
+        finalImageUrl = await uploadImageToCloudinary(imageFile, (pct) => {
           setUploadProgress(pct);
         });
       } catch (err) {
         console.error('Image upload failed:', err);
-        toast.error('Image upload failed — posting without image');
-        imageUrl = '';
+        toast.error('Image upload failed');
+        setSaving(false);
+        return;
       } finally {
         setUploading(false);
         setUploadProgress(0);
       }
+    } else if (!imagePreview) {
+      // User explicitly cleared/removed the image
+      finalImageUrl = '';
     }
 
     try {
-      await createAnnouncement({
-        ...form,
-        status: 'Reported',
-        ...(imageUrl ? { imageUrl } : {}),
-      });
-      toast.success('Announcement posted successfully');
+      if (announcement) {
+        await updateAnnouncement(announcement.id, {
+          ...form,
+          imageUrl: finalImageUrl,
+          image_url: finalImageUrl,
+        });
+        toast.success('Announcement updated successfully');
+      } else {
+        await createAnnouncement({
+          ...form,
+          status: 'Reported',
+          imageUrl: finalImageUrl,
+        });
+        toast.success('Announcement posted successfully');
+      }
       setForm(EMPTY_FORM);
       removeImage();
       onClose();
     } catch (err) {
-      console.error('Failed to post announcement:', err);
-      toast.error(err.message || 'Failed to post announcement');
+      console.error('Failed to save announcement:', err);
+      toast.error(err.message || 'Failed to save announcement');
     } finally {
       setSaving(false);
     }
@@ -113,7 +150,7 @@ export default function AddAnnouncementDialog({ open, onClose }) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Announcement</DialogTitle>
+          <DialogTitle>{announcement ? 'Edit Announcement' : 'Create Announcement'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -259,12 +296,12 @@ export default function AddAnnouncementDialog({ open, onClose }) {
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {uploading ? `Uploading ${uploadProgress}%…` : 'Posting…'}
+                  {uploading ? `Uploading ${uploadProgress}%…` : announcement ? 'Saving…' : 'Posting…'}
                 </>
               ) : (
                 <>
                   <Upload className="h-4 w-4 mr-1.5" />
-                  Post Announcement
+                  {announcement ? 'Save Changes' : 'Post Announcement'}
                 </>
               )}
             </Button>

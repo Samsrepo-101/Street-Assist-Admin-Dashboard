@@ -2,14 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Calendar, User, Phone, Map, ImageIcon, ChevronLeft, ChevronRight, Tag, Download, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, User, Phone, Map, ImageIcon, ChevronLeft, ChevronRight, Tag, Download, Loader2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { updateReportStatus, addReportStatusUpdate, updateReportMeta, enrichReportWithUser, getStatusConfig, REPORT_STATUSES } from '../../api/reports.js';
 import { exportReportPDF } from '../../utils/exportReportPDF.js';
 import { toast } from 'sonner';
 import MapViewModal from '../shared/MapViewModal';
+import MapPickerField from '../shared/MapPickerField';
 import { Input } from '@/components/ui/input';
 import { uploadImageToCloudinary } from '../../api/cloudinary.js';
 
@@ -80,6 +82,27 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const [proofPreviews, setProofPreviews] = useState([]);
   const fileInputRef = useRef(null);
 
+  // Edit Mode States
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    description: '',
+    assistanceDescription: '',
+    fullName: '',
+    contactNumber: '',
+    approximateAge: '',
+    sex: 'Unknown',
+    reportType: 'Individual',
+    locationAddress: '',
+    latitude: null,
+    longitude: null,
+    photoUrl: '',
+  });
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [editImagePreview, setEditImagePreview] = useState(null);
+  const [editUploading, setEditUploading] = useState(false);
+  const [editUploadProgress, setEditUploadProgress] = useState(0);
+  const editFileInputRef = useRef(null);
+
   useEffect(() => {
     const urls = proofFiles.map(file => URL.createObjectURL(file));
     setProofPreviews(urls);
@@ -94,6 +117,26 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     setProofFiles([]);
     setEnrichedReport(report);
 
+    // Reset and initialize Edit Mode
+    setIsEditing(false);
+    setEditForm({
+      description: report.description || '',
+      assistanceDescription: report.assistanceDescription || '',
+      fullName: report.fullName || report.reporter_name || '',
+      contactNumber: report.contactNumber || report.reporter_email || '',
+      approximateAge: report.approximateAge || '',
+      sex: report.sex || 'Unknown',
+      reportType: report.reportType || report.category || 'Individual',
+      locationAddress: report.locationAddress || report.location_address || '',
+      latitude: report.latitude ?? null,
+      longitude: report.longitude ?? null,
+      photoUrl: report.photoUrl || report.image_url || '',
+    });
+    setEditImageFile(null);
+    setEditImagePreview(report.photoUrl || report.image_url || null);
+    setEditUploading(false);
+    setEditUploadProgress(0);
+
     // Mark as seen immediately upon opening if not already seen
     if (!report.admin_seen) {
       updateReportMeta(report.id, { admin_seen: true }).catch(err => {
@@ -103,7 +146,15 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
     // Enrich with user data only if fullName is missing
     if (!report.fullName && !report.reporter_name && report.userId) {
-      enrichReportWithUser(report).then(setEnrichedReport);
+      enrichReportWithUser(report).then((res) => {
+        setEnrichedReport(res);
+        // Also sync editForm with enriched details
+        setEditForm(p => ({
+          ...p,
+          fullName: res.fullName || res.reporter_name || p.fullName,
+          contactNumber: res.contactNumber || res.reporter_email || p.contactNumber,
+        }));
+      });
     }
   }, [report]);
 
@@ -209,6 +260,89 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     }
   };
 
+  const handleEditImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowed.includes(file.type)) {
+      toast.error('Only JPG and PNG images are supported');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be smaller than 5MB');
+      return;
+    }
+
+    setEditImageFile(file);
+    setEditImagePreview(URL.createObjectURL(file));
+  };
+
+  const removeEditImage = () => {
+    setEditImageFile(null);
+    setEditImagePreview(null);
+    setEditForm(p => ({ ...p, photoUrl: '' }));
+    if (editFileInputRef.current) editFileInputRef.current.value = '';
+  };
+
+  const handleSaveDetails = async () => {
+    setSaving(true);
+    let finalPhotoUrl = editForm.photoUrl;
+
+    if (editImageFile) {
+      setEditUploading(true);
+      try {
+        finalPhotoUrl = await uploadImageToCloudinary(editImageFile, (pct) => {
+          setEditUploadProgress(pct);
+        });
+      } catch (err) {
+        console.error('Image upload failed:', err);
+        toast.error('Image upload failed');
+        setSaving(false);
+        return;
+      } finally {
+        setEditUploading(false);
+        setEditUploadProgress(0);
+      }
+    }
+
+    try {
+      const updatedFields = {
+        description: editForm.description,
+        assistanceDescription: editForm.assistanceDescription,
+        fullName: editForm.fullName,
+        contactNumber: editForm.contactNumber,
+        approximateAge: editForm.approximateAge,
+        sex: editForm.sex,
+        reportType: editForm.reportType,
+        category: editForm.reportType,
+        locationAddress: editForm.locationAddress,
+        location_address: editForm.locationAddress,
+        latitude: editForm.latitude,
+        longitude: editForm.longitude,
+        photoUrl: finalPhotoUrl,
+        photoURL: finalPhotoUrl,
+        image_url: finalPhotoUrl,
+      };
+
+      await updateReportMeta(r.id, updatedFields);
+      toast.success('Report details updated successfully');
+      
+      setEnrichedReport(prev => ({
+        ...prev,
+        ...updatedFields,
+        attachments: finalPhotoUrl ? [finalPhotoUrl] : [],
+      }));
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to update report details:', err);
+      toast.error(err.message || 'Failed to update report details');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Format the timestamp — try seenAt first, then timestamp
   const displayTime = r.seenAt?.toDate
     ? format(r.seenAt.toDate(), 'MMM dd, yyyy · hh:mm a')
@@ -221,342 +355,549 @@ export default function ReportDetailDialog({ report, open, onClose }) {
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-primary text-sm font-bold">
-                {r.reportId || r.report_id || r.id}
-              </span>
-              <Badge variant="outline" className={statusCfg.badge}>
-                {statusCfg.label}
-              </Badge>
-              {r.reportType && (
-                <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                  {r.reportType}
+            <DialogTitle className="flex items-center gap-2 flex-wrap justify-between w-full">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono text-primary text-sm font-bold">
+                  {r.reportId || r.report_id || r.id}
                 </span>
+                <Badge variant="outline" className={statusCfg.badge}>
+                  {statusCfg.label}
+                </Badge>
+                {r.reportType && !isEditing && (
+                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {r.reportType}
+                  </span>
+                )}
+              </div>
+              {!isClosed && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(!isEditing)}
+                  disabled={saving}
+                  className="h-7 text-[11px] font-semibold"
+                >
+                  {isEditing ? 'Cancel Edit' : 'Edit Details'}
+                </Button>
               )}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Photo */}
-            <AttachmentGallery attachments={r.attachments} />
+          {isEditing ? (
+            <div className="space-y-4">
+              {/* Image upload */}
+              <div>
+                <Label className="mb-2 block text-xs font-semibold text-muted-foreground">Incident Image (JPG, PNG · max 5MB)</Label>
 
-            {/* Description */}
-            <div className="bg-muted/40 rounded-lg p-3 border border-border">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">
-                Incident Description
-              </p>
-              <p className="text-sm text-foreground font-medium">
-                {r.description || 'No description provided'}
-              </p>
-              {r.assistanceDescription && r.assistanceDescription !== r.description && (
-                <p className="text-xs text-muted-foreground mt-1.5 border-t border-border pt-1.5">
-                  {r.assistanceDescription}
-                </p>
-              )}
-            </div>
-
-            {/* Subject info (approximateAge, sex, reportType) */}
-            {(r.approximateAge || r.sex || r.reportType) && (
-              <div className="grid grid-cols-3 gap-2">
-                {r.reportType && (
-                  <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Type</p>
-                    <div className="flex items-center gap-1">
-                      <Tag className="h-3 w-3 text-primary shrink-0" />
-                      <span className="text-xs font-semibold text-foreground">{r.reportType}</span>
-                    </div>
+                {editImagePreview ? (
+                  <div className="relative rounded-lg overflow-hidden border border-border bg-muted/20">
+                    <img
+                      src={editImagePreview}
+                      alt="Preview"
+                      className="w-full h-48 object-cover"
+                    />
+                    {/* Upload progress overlay */}
+                    {editUploading && (
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="h-6 w-6 text-white animate-spin" />
+                        <span className="text-white text-sm font-medium">{editUploadProgress}%</span>
+                        <div className="w-32 h-1.5 bg-white/30 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-white rounded-full transition-all duration-200"
+                            style={{ width: `${editUploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {/* Remove button */}
+                    {!editUploading && (
+                      <button
+                        type="button"
+                        onClick={removeEditImage}
+                        className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/40 transition-colors">
+                    <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                    <span className="text-sm text-muted-foreground font-medium">Click to upload image</span>
+                    <span className="text-xs text-muted-foreground/60">JPG, PNG up to 5MB</span>
+                    <input
+                      ref={editFileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png"
+                      className="hidden"
+                      onChange={handleEditImageChange}
+                    />
+                  </label>
                 )}
-                {r.sex && (
-                  <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Sex</p>
-                    <span className="text-xs font-semibold text-foreground">{r.sex}</span>
-                  </div>
-                )}
-                {r.approximateAge && (
-                  <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Age</p>
-                    <span className="text-xs font-semibold text-foreground">~{r.approximateAge}</span>
-                  </div>
-                )}
               </div>
-            )}
 
-            {/* Reporter info */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">
-                  Reported By
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <span className="text-sm font-semibold text-foreground truncate">
-                    {r.fullName || r.reporter_name || 'Anonymous'}
-                  </span>
-                </div>
+              {/* Description */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-muted-foreground">Incident Description</Label>
+                <Textarea
+                  value={editForm.description}
+                  onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Enter details of the incident..."
+                  rows={3}
+                  className="text-sm border-border bg-white"
+                />
               </div>
-              <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">
-                  Contact
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <span className="text-sm text-foreground truncate">
-                    {r.contactNumber || r.reporter_email || 'N/A'}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Location + timestamp */}
-            <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-                <div className="min-w-0">
-                  <span className="text-xs leading-snug break-words">
-                    {r.locationAddress || r.location_address ||
-                      (hasLocation ? `${Number(r.latitude).toFixed(5)}, ${Number(r.longitude).toFixed(5)}` : 'Unknown location')}
-                  </span>
-                  {hasLocation && (
-                    <button
-                      onClick={() => setMapOpen(true)}
-                      className="block text-primary hover:underline text-xs font-medium mt-0.5"
-                    >
-                      View on map
-                    </button>
-                  )}
-                </div>
+              {/* Assistance Description */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-muted-foreground">Assistance Needed / Details</Label>
+                <Textarea
+                  value={editForm.assistanceDescription}
+                  onChange={e => setEditForm(p => ({ ...p, assistanceDescription: e.target.value }))}
+                  placeholder="Enter details of assistance needed..."
+                  rows={2}
+                  className="text-sm border-border bg-white"
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 shrink-0 text-primary" />
-                <span className="text-xs">{displayTime}</span>
-              </div>
-            </div>
 
-            {/* Map button */}
-            {hasLocation && (
-              <Button variant="outline" size="sm" className="w-full" onClick={() => setMapOpen(true)}>
-                <Map className="h-3.5 w-3.5 mr-2" /> View Location on Map
-              </Button>
-            )}
-
-            {/* Resolution info */}
-            {r.resolutionTimestamp && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-emerald-700">
-                Resolved on{' '}
-                {r.resolutionTimestamp?.toDate
-                  ? format(r.resolutionTimestamp.toDate(), 'MMM dd, yyyy · hh:mm a')
-                  : '—'}
-              </div>
-            )}
-
-            {/* Lock Indicator Banner */}
-            {isClosed && (
-              <div className="bg-slate-100 border border-slate-200 rounded-xl p-3.5 flex items-start gap-2.5">
-                <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-xs">🔒</span>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-xs font-bold text-slate-700">Report Locked</p>
-                  <p className="text-[11px] leading-normal text-slate-500">
-                    This report has been closed and can no longer be modified.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Update Status & Send Message Section */}
-            <div className="bg-slate-50 border border-border rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                <span className="text-xs font-bold text-foreground uppercase tracking-wide">Update Status & Progress</span>
-              </div>
-              
-              <div className="grid grid-cols-1 gap-3">
+              {/* Subject details: Type, Sex, Age */}
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Select Status</label>
-                  <Select value={status} onValueChange={handleStatusChange} disabled={isClosed}>
+                  <Label className="text-xs font-semibold text-muted-foreground">Type</Label>
+                  <Select
+                    value={editForm.reportType}
+                    onValueChange={v => setEditForm(p => ({ ...p, reportType: v }))}
+                  >
                     <SelectTrigger className="h-9 bg-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {REPORT_STATUSES.map(s => {
-                        const cfg = getStatusConfig(s);
-                        return (
-                          <SelectItem key={s} value={s}>{cfg.label}</SelectItem>
-                        );
-                      })}
+                      <SelectItem value="Individual">Individual</SelectItem>
+                      <SelectItem value="Group">Group</SelectItem>
+                      <SelectItem value="Community">Community</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                <Input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleProofSelection}
-                />
-
-                {(status === 'Closed' || status === 'Resolved') && !isClosed && (
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Attach Proof / Evidence (Images)</label>
-                        <p className="text-[10px] text-muted-foreground">You can choose multiple images. Add more by clicking the button again.</p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        Select images
-                      </Button>
-                    </div>
-                    <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
-                      {proofFiles.length > 0 ? (
-                        <>
-                          <div className="flex items-center justify-between gap-3 mb-3">
-                            <p className="text-sm text-foreground font-medium">{proofFiles.length} image{proofFiles.length !== 1 ? 's' : ''} selected.</p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setProofFiles([]);
-                              }}
-                            >
-                              Clear all
-                            </Button>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {proofPreviews.map((src, i) => (
-                              <div key={i} className="relative overflow-hidden rounded-md border border-border bg-muted">
-                                <img src={src} alt={`Proof ${i + 1}`} className="h-24 w-full object-cover" />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newFiles = [...proofFiles];
-                                    newFiles.splice(i, 1);
-                                    setProofFiles(newFiles);
-                                  }}
-                                  className="absolute top-1 right-1 bg-destructive text-white rounded-full h-6 w-6 flex items-center justify-center text-[10px] font-bold hover:bg-destructive/90"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-xs">No images selected yet.</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Update Message / Action Taken</label>
-                  <Textarea
-                    value={updateMsg}
-                    onChange={e => setUpdateMsg(e.target.value)}
-                    placeholder="E.g., Dispatched barangay responders and informed Barangay Captain..."
-                    rows={2}
-                    className="text-sm border-border bg-white"
-                    disabled={isClosed}
+                  <Label className="text-xs font-semibold text-muted-foreground">Sex</Label>
+                  <Select
+                    value={editForm.sex}
+                    onValueChange={v => setEditForm(p => ({ ...p, sex: v }))}
+                  >
+                    <SelectTrigger className="h-9 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Unknown">Unknown</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-muted-foreground">Approx. Age</Label>
+                  <Input
+                    value={editForm.approximateAge}
+                    onChange={e => setEditForm(p => ({ ...p, approximateAge: e.target.value }))}
+                    placeholder="e.g. 25"
+                    className="h-9 bg-white"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end pt-1">
-                <Button 
-                  onClick={handleSendUpdate} 
-                  disabled={saving || !status || isClosed}
-                  size="sm"
-                  className="h-8 text-xs font-semibold"
+              {/* Reporter Info */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-muted-foreground">Reported By</Label>
+                  <Input
+                    value={editForm.fullName}
+                    onChange={e => setEditForm(p => ({ ...p, fullName: e.target.value }))}
+                    placeholder="Name"
+                    className="h-9 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-muted-foreground">Contact</Label>
+                  <Input
+                    value={editForm.contactNumber}
+                    onChange={e => setEditForm(p => ({ ...p, contactNumber: e.target.value }))}
+                    placeholder="Phone number"
+                    className="h-9 bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Location Address */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-muted-foreground">Location Address</Label>
+                <Input
+                  value={editForm.locationAddress}
+                  onChange={e => setEditForm(p => ({ ...p, locationAddress: e.target.value }))}
+                  placeholder="Street, Barangay, Municipality"
+                  className="h-9 bg-white"
+                />
+              </div>
+
+              {/* Map Coordinates Picker */}
+              <div>
+                <Label className="mb-2 block text-xs font-semibold text-muted-foreground">
+                  Pin Location on Map <span className="text-muted-foreground font-normal text-[10px]">(Camarines Norte)</span>
+                </Label>
+                <MapPickerField
+                  latitude={editForm.latitude}
+                  longitude={editForm.longitude}
+                  onChange={(lat, lng) => setEditForm(p => ({ ...p, latitude: lat, longitude: lng }))}
+                />
+              </div>
+
+              {/* Edit mode action buttons */}
+              <div className="flex justify-end gap-2 pt-3 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditing(false)}
+                  disabled={saving}
                 >
-                  {saving ? 'Sending...' : 'Send Update'}
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleSaveDetails}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving Details...
+                    </>
+                  ) : (
+                    'Save Details'
+                  )}
                 </Button>
               </div>
             </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Photo */}
+              <AttachmentGallery attachments={r.attachments} />
 
-            {/* Status Update History Log */}
-            {r.statusUpdates && r.statusUpdates.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-foreground uppercase tracking-wide">Status Update History</span>
-                <div className="border border-border rounded-xl bg-white divide-y divide-border overflow-hidden max-h-48 overflow-y-auto">
-                  {r.statusUpdates.slice().reverse().map((upd, idx) => {
-                    const cfg = getStatusConfig(upd.status);
-                    return (
-                      <div key={idx} className="p-3 text-xs space-y-1 bg-white">
-                        <div className="flex items-center justify-between">
-                          <Badge variant="outline" className={`${cfg.badge} text-[10px] px-1.5 py-0`}>
-                            {cfg.label}
-                          </Badge>
-                          <span className="text-[10px] text-muted-foreground font-medium">
-                            {upd.timestamp ? format(new Date(upd.timestamp), 'MMM dd, yyyy · hh:mm a') : '—'}
-                          </span>
-                        </div>
-                        {upd.message && (
-                          <p className="text-foreground font-medium pl-0.5 mt-1 leading-relaxed">
-                            {upd.message}
-                          </p>
-                        )}
-                        {upd.proofUrls && upd.proofUrls.length > 0 && (
-                          <div className="flex gap-2 mt-2 overflow-x-auto pb-1 pl-0.5">
-                            {upd.proofUrls.map((url, i) => (
-                              <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                                <img src={url} alt="Proof" className="h-10 w-10 object-cover rounded border border-border" />
-                              </a>
-                            ))}
-                          </div>
-                        )}
+              {/* Description */}
+              <div className="bg-muted/40 rounded-lg p-3 border border-border">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">
+                  Incident Description
+                </p>
+                <p className="text-sm text-foreground font-medium">
+                  {r.description || 'No description provided'}
+                </p>
+                {r.assistanceDescription && r.assistanceDescription !== r.description && (
+                  <p className="text-xs text-muted-foreground mt-1.5 border-t border-border pt-1.5">
+                    {r.assistanceDescription}
+                  </p>
+                )}
+              </div>
+
+              {/* Subject info (approximateAge, sex, reportType) */}
+              {(r.approximateAge || r.sex || r.reportType) && (
+                <div className="grid grid-cols-3 gap-2">
+                  {r.reportType && (
+                    <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Type</p>
+                      <div className="flex items-center gap-1">
+                        <Tag className="h-3 w-3 text-primary shrink-0" />
+                        <span className="text-xs font-semibold text-foreground">{r.reportType}</span>
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
+                  {r.sex && (
+                    <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Sex</p>
+                      <span className="text-xs font-semibold text-foreground">{r.sex}</span>
+                    </div>
+                  )}
+                  {r.approximateAge && (
+                    <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Age</p>
+                      <span className="text-xs font-semibold text-foreground">~{r.approximateAge}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Reporter info */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">
+                    Reported By
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="text-sm font-semibold text-foreground truncate">
+                      {r.fullName || r.reporter_name || 'Anonymous'}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">
+                    Contact
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="text-sm text-foreground truncate">
+                      {r.contactNumber || r.reporter_email || 'N/A'}
+                    </span>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Admin notes */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Admin Notes</label>
-              <Textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Add notes about this report..."
-                rows={2}
-                className="text-sm border-border bg-white"
-                disabled={isClosed}
-              />
-            </div>
+              {/* Location + timestamp */}
+              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                  <div className="min-w-0">
+                    <span className="text-xs leading-snug break-words">
+                      {r.locationAddress || r.location_address ||
+                        (hasLocation ? `${Number(r.latitude).toFixed(5)}, ${Number(r.longitude).toFixed(5)}` : 'Unknown location')}
+                    </span>
+                    {hasLocation && (
+                      <button
+                        onClick={() => setMapOpen(true)}
+                        className="block text-primary hover:underline text-xs font-medium mt-0.5"
+                      >
+                        View on map
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="text-xs">{displayTime}</span>
+                </div>
+              </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleExportPDF}
-                disabled={exporting}
-                className="mr-auto text-xs font-medium"
-              >
-                {exporting ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-3.5 w-3.5 mr-1.5" />
-                    Export PDF
-                  </>
-                )}
-              </Button>
-              <Button variant="outline" onClick={onClose}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving || isClosed}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
+              {/* Map button */}
+              {hasLocation && (
+                <Button variant="outline" size="sm" className="w-full" onClick={() => setMapOpen(true)}>
+                  <Map className="h-3.5 w-3.5 mr-2" /> View Location on Map
+                </Button>
+              )}
+
+              {/* Resolution info */}
+              {r.resolutionTimestamp && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-emerald-700">
+                  Resolved on{' '}
+                  {r.resolutionTimestamp?.toDate
+                    ? format(r.resolutionTimestamp.toDate(), 'MMM dd, yyyy · hh:mm a')
+                    : '—'}
+                </div>
+              )}
+
+              {/* Lock Indicator Banner */}
+              {isClosed && (
+                <div className="bg-slate-100 border border-slate-200 rounded-xl p-3.5 flex items-start gap-2.5">
+                  <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-xs">🔒</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-slate-700">Report Locked</p>
+                    <p className="text-[11px] leading-normal text-slate-500">
+                      This report has been closed and can no longer be modified.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Update Status & Send Message Section */}
+              <div className="bg-slate-50 border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wide">Update Status & Progress</span>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground">Select Status</label>
+                    <Select value={status} onValueChange={handleStatusChange} disabled={isClosed}>
+                      <SelectTrigger className="h-9 bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REPORT_STATUSES.map(s => {
+                          const cfg = getStatusConfig(s);
+                          return (
+                            <SelectItem key={s} value={s}>{cfg.label}</SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleProofSelection}
+                  />
+
+                  {(status === 'Closed' || status === 'Resolved') && !isClosed && (
+                    <div className="space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-muted-foreground">Attach Proof / Evidence (Images)</label>
+                          <p className="text-[10px] text-muted-foreground">You can choose multiple images. Add more by clicking the button again.</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          Select images
+                        </Button>
+                      </div>
+                      <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
+                        {proofFiles.length > 0 ? (
+                          <>
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                              <p className="text-sm text-foreground font-medium">{proofFiles.length} image{proofFiles.length !== 1 ? 's' : ''} selected.</p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setProofFiles([]);
+                                }}
+                              >
+                                Clear all
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {proofPreviews.map((src, i) => (
+                                <div key={i} className="relative overflow-hidden rounded-md border border-border bg-muted">
+                                  <img src={src} alt={`Proof ${i + 1}`} className="h-24 w-full object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newFiles = [...proofFiles];
+                                      newFiles.splice(i, 1);
+                                      setProofFiles(newFiles);
+                                    }}
+                                    className="absolute top-1 right-1 bg-destructive text-white rounded-full h-6 w-6 flex items-center justify-center text-[10px] font-bold hover:bg-destructive/90"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-xs">No images selected yet.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground">Update Message / Action Taken</label>
+                    <Textarea
+                      value={updateMsg}
+                      onChange={e => setUpdateMsg(e.target.value)}
+                      placeholder="E.g., Dispatched barangay responders and informed Barangay Captain..."
+                      rows={2}
+                      className="text-sm border-border bg-white"
+                      disabled={isClosed}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <Button 
+                    onClick={handleSendUpdate} 
+                    disabled={saving || !status || isClosed}
+                    size="sm"
+                    className="h-8 text-xs font-semibold"
+                  >
+                    {saving ? 'Sending...' : 'Send Update'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Status Update History Log */}
+              {r.statusUpdates && r.statusUpdates.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wide">Status Update History</span>
+                  <div className="border border-border rounded-xl bg-white divide-y divide-border overflow-hidden max-h-48 overflow-y-auto">
+                    {r.statusUpdates.slice().reverse().map((upd, idx) => {
+                      const cfg = getStatusConfig(upd.status);
+                      return (
+                        <div key={idx} className="p-3 text-xs space-y-1 bg-white">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className={`${cfg.badge} text-[10px] px-1.5 py-0`}>
+                              {cfg.label}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                              {upd.timestamp ? format(new Date(upd.timestamp), 'MMM dd, yyyy · hh:mm a') : '—'}
+                            </span>
+                          </div>
+                          {upd.message && (
+                            <p className="text-foreground font-medium pl-0.5 mt-1 leading-relaxed">
+                              {upd.message}
+                            </p>
+                          )}
+                          {upd.proofUrls && upd.proofUrls.length > 0 && (
+                            <div className="flex gap-2 mt-2 overflow-x-auto pb-1 pl-0.5">
+                              {upd.proofUrls.map((url, i) => (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                                  <img src={url} alt="Proof" className="h-10 w-10 object-cover rounded border border-border" />
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Admin notes */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">Admin Notes</label>
+                <Textarea
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="Add notes about this report..."
+                  rows={2}
+                  className="text-sm border-border bg-white"
+                  disabled={isClosed}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportPDF}
+                  disabled={exporting}
+                  className="mr-auto text-xs font-medium"
+                >
+                  {exporting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      Export PDF
+                    </>
+                  )}
+                </Button>
+                <Button variant="outline" onClick={onClose}>Cancel</Button>
+                <Button onClick={handleSave} disabled={saving || isClosed}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
             </div>
-          </div>
         </DialogContent>
       </Dialog>
 

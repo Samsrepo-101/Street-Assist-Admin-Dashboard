@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Trash2, MapPin, Calendar, Phone, User, Map } from 'lucide-react';
+import { MessageCircle, Trash2, MapPin, Calendar, Phone, User, Map, Edit } from 'lucide-react';
 import MapViewModal from '../shared/MapViewModal';
 
 const categoryColors = {
@@ -18,7 +18,7 @@ const statusColors = {
   'Case Closed':         'bg-slate-50 text-slate-700 border-slate-200',
 };
 
-export default function AnnouncementCard({ announcement, onViewComments, onUpdateStatus, onDelete }) {
+export default function AnnouncementCard({ announcement, onViewComments, onUpdateStatus, onDelete, onEdit }) {
   const [mapOpen, setMapOpen] = useState(false);
   const hasLocation = announcement.latitude && announcement.longitude;
 
@@ -101,6 +101,14 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                 disabled={announcement.status === 'Case Closed'}
               >
                 Update Status
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(announcement)}
+                disabled={announcement.status === 'Case Closed'}
+              >
+                <Edit className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
               {hasLocation && (
                 <Button variant="outline" size="sm" onClick={() => setMapOpen(true)}>

@@ -206,3 +206,32 @@ export async function updateAnnouncementStatus(announcementId, status, evidenceU
     ...(evidenceUrl ? { evidenceUrl } : {}),
   });
 }
+
+/**
+ * Updates an announcement document in the /announcements collection.
+ * Validates that the title is non-empty if it is being updated.
+ *
+ * @param {string} announcementId - The ID of the announcement to update.
+ * @param {object} fields - The fields to update.
+ * @returns {Promise<void>}
+ */
+export async function updateAnnouncement(announcementId, fields) {
+  if (fields.title !== undefined && (!fields.title || !fields.title.trim())) {
+    throw new TypeError('Announcement title cannot be empty');
+  }
+
+  const annRef = doc(db, 'announcements', announcementId);
+  const annSnap = await getDoc(annRef);
+  if (annSnap.exists()) {
+    const annData = annSnap.data();
+    if (annData && mapRawAnnouncementStatus(annData.status) === 'Case Closed') {
+      throw new Error('This case has been closed and can no longer be modified.');
+    }
+  }
+
+  const updatedData = { ...fields };
+  if (fields.title) updatedData.title = fields.title.trim();
+  if (fields.status) updatedData.status = mapRawAnnouncementStatus(fields.status);
+
+  await updateDoc(annRef, updatedData);
+}

@@ -16,6 +16,7 @@ import CommentsDialog from '../components/announcement/CommentsDialog';
 
 export default function Announcements() {
   const [showAdd, setShowAdd] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
   const [commentsTarget, setCommentsTarget] = useState(null);
   const [statusTarget, setStatusTarget] = useState(null);
   const [newStatus, setNewStatus] = useState('');
@@ -246,12 +247,14 @@ export default function Announcements() {
               onViewComments={setCommentsTarget}
               onUpdateStatus={(a) => { setStatusTarget(a); setNewStatus(a.status || 'Search Ongoing'); }}
               onDelete={handleDelete}
+              onEdit={setEditTarget}
             />
           ))
         )}
       </div>
 
       <AddAnnouncementDialog open={showAdd} onClose={() => setShowAdd(false)} />
+      <AddAnnouncementDialog open={!!editTarget} announcement={editTarget} onClose={() => setEditTarget(null)} />
       <CommentsDialog announcement={commentsTarget} open={!!commentsTarget} onClose={() => setCommentsTarget(null)} />
 
       <Dialog open={!!statusTarget} onOpenChange={() => setStatusTarget(null)}>
