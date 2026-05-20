@@ -11,7 +11,6 @@ import { updateReportStatus, addReportStatusUpdate, updateReportMeta, enrichRepo
 import { exportReportPDF } from '../../utils/exportReportPDF.js';
 import { toast } from 'sonner';
 import MapViewModal from '../shared/MapViewModal';
-import MapPickerField from '../shared/MapPickerField';
 import { Input } from '@/components/ui/input';
 import { uploadImageToCloudinary } from '../../api/cloudinary.js';
 
@@ -82,26 +81,6 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const [proofPreviews, setProofPreviews] = useState([]);
   const fileInputRef = useRef(null);
 
-  // Edit Mode States
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    description: '',
-    assistanceDescription: '',
-    fullName: '',
-    contactNumber: '',
-    approximateAge: '',
-    sex: 'Unknown',
-    reportType: 'Individual',
-    locationAddress: '',
-    latitude: null,
-    longitude: null,
-    photoUrl: '',
-  });
-  const [editImageFile, setEditImageFile] = useState(null);
-  const [editImagePreview, setEditImagePreview] = useState(null);
-  const [editUploading, setEditUploading] = useState(false);
-  const [editUploadProgress, setEditUploadProgress] = useState(0);
-  const editFileInputRef = useRef(null);
 
   useEffect(() => {
     const urls = proofFiles.map(file => URL.createObjectURL(file));
@@ -117,26 +96,6 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     setProofFiles([]);
     setEnrichedReport(report);
 
-    // Reset and initialize Edit Mode
-    setIsEditing(false);
-    setEditForm({
-      description: report.description || '',
-      assistanceDescription: report.assistanceDescription || '',
-      fullName: report.fullName || report.reporter_name || '',
-      contactNumber: report.contactNumber || report.reporter_email || '',
-      approximateAge: report.approximateAge || '',
-      sex: report.sex || 'Unknown',
-      reportType: report.reportType || report.category || 'Individual',
-      locationAddress: report.locationAddress || report.location_address || '',
-      latitude: report.latitude ?? null,
-      longitude: report.longitude ?? null,
-      photoUrl: report.photoUrl || report.image_url || '',
-    });
-    setEditImageFile(null);
-    setEditImagePreview(report.photoUrl || report.image_url || null);
-    setEditUploading(false);
-    setEditUploadProgress(0);
-
     // Mark as seen immediately upon opening if not already seen
     if (!report.admin_seen) {
       updateReportMeta(report.id, { admin_seen: true }).catch(err => {
@@ -148,12 +107,6 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     if (!report.fullName && !report.reporter_name && report.userId) {
       enrichReportWithUser(report).then((res) => {
         setEnrichedReport(res);
-        // Also sync editForm with enriched details
-        setEditForm(p => ({
-          ...p,
-          fullName: res.fullName || res.reporter_name || p.fullName,
-          contactNumber: res.contactNumber || res.reporter_email || p.contactNumber,
-        }));
       });
     }
   }, [report]);
@@ -260,89 +213,6 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     }
   };
 
-  const handleEditImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowed.includes(file.type)) {
-      toast.error('Only JPG and PNG images are supported');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be smaller than 5MB');
-      return;
-    }
-
-    setEditImageFile(file);
-    setEditImagePreview(URL.createObjectURL(file));
-  };
-
-  const removeEditImage = () => {
-    setEditImageFile(null);
-    setEditImagePreview(null);
-    setEditForm(p => ({ ...p, photoUrl: '' }));
-    if (editFileInputRef.current) editFileInputRef.current.value = '';
-  };
-
-  const handleSaveDetails = async () => {
-    setSaving(true);
-    let finalPhotoUrl = editForm.photoUrl;
-
-    if (editImageFile) {
-      setEditUploading(true);
-      try {
-        finalPhotoUrl = await uploadImageToCloudinary(editImageFile, (pct) => {
-          setEditUploadProgress(pct);
-        });
-      } catch (err) {
-        console.error('Image upload failed:', err);
-        toast.error('Image upload failed');
-        setSaving(false);
-        return;
-      } finally {
-        setEditUploading(false);
-        setEditUploadProgress(0);
-      }
-    }
-
-    try {
-      const updatedFields = {
-        description: editForm.description,
-        assistanceDescription: editForm.assistanceDescription,
-        fullName: editForm.fullName,
-        contactNumber: editForm.contactNumber,
-        approximateAge: editForm.approximateAge,
-        sex: editForm.sex,
-        reportType: editForm.reportType,
-        category: editForm.reportType,
-        locationAddress: editForm.locationAddress,
-        location_address: editForm.locationAddress,
-        latitude: editForm.latitude,
-        longitude: editForm.longitude,
-        photoUrl: finalPhotoUrl,
-        photoURL: finalPhotoUrl,
-        image_url: finalPhotoUrl,
-      };
-
-      await updateReportMeta(r.id, updatedFields);
-      toast.success('Report details updated successfully');
-      
-      setEnrichedReport(prev => ({
-        ...prev,
-        ...updatedFields,
-        attachments: finalPhotoUrl ? [finalPhotoUrl] : [],
-      }));
-      setIsEditing(false);
-    } catch (err) {
-      console.error('Failed to update report details:', err);
-      toast.error(err.message || 'Failed to update report details');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   // Format the timestamp — try seenAt first, then timestamp
   const displayTime = r.seenAt?.toDate
     ? format(r.seenAt.toDate(), 'MMM dd, yyyy · hh:mm a')
@@ -363,221 +233,16 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 <Badge variant="outline" className={statusCfg.badge}>
                   {statusCfg.label}
                 </Badge>
-                {r.reportType && !isEditing && (
+                {r.reportType && (
                   <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                     {r.reportType}
                   </span>
                 )}
               </div>
-              {!isClosed && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(!isEditing)}
-                  disabled={saving}
-                  className="h-7 text-[11px] font-semibold"
-                >
-                  {isEditing ? 'Cancel Edit' : 'Edit Details'}
-                </Button>
-              )}
             </DialogTitle>
           </DialogHeader>
 
-          {isEditing ? (
-            <div className="space-y-4">
-              {/* Image upload */}
-              <div>
-                <Label className="mb-2 block text-xs font-semibold text-muted-foreground">Incident Image (JPG, PNG · max 5MB)</Label>
-
-                {editImagePreview ? (
-                  <div className="relative rounded-lg overflow-hidden border border-border bg-muted/20">
-                    <img
-                      src={editImagePreview}
-                      alt="Preview"
-                      className="w-full h-48 object-cover"
-                    />
-                    {/* Upload progress overlay */}
-                    {editUploading && (
-                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2">
-                        <Loader2 className="h-6 w-6 text-white animate-spin" />
-                        <span className="text-white text-sm font-medium">{editUploadProgress}%</span>
-                        <div className="w-32 h-1.5 bg-white/30 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-white rounded-full transition-all duration-200"
-                            style={{ width: `${editUploadProgress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {/* Remove button */}
-                    {!editUploading && (
-                      <button
-                        type="button"
-                        onClick={removeEditImage}
-                        className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/40 transition-colors">
-                    <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
-                    <span className="text-sm text-muted-foreground font-medium">Click to upload image</span>
-                    <span className="text-xs text-muted-foreground/60">JPG, PNG up to 5MB</span>
-                    <input
-                      ref={editFileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png"
-                      className="hidden"
-                      onChange={handleEditImageChange}
-                    />
-                  </label>
-                )}
-              </div>
-
-              {/* Description */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-muted-foreground">Incident Description</Label>
-                <Textarea
-                  value={editForm.description}
-                  onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
-                  placeholder="Enter details of the incident..."
-                  rows={3}
-                  className="text-sm border-border bg-white"
-                />
-              </div>
-
-              {/* Assistance Description */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-muted-foreground">Assistance Needed / Details</Label>
-                <Textarea
-                  value={editForm.assistanceDescription}
-                  onChange={e => setEditForm(p => ({ ...p, assistanceDescription: e.target.value }))}
-                  placeholder="Enter details of assistance needed..."
-                  rows={2}
-                  className="text-sm border-border bg-white"
-                />
-              </div>
-
-              {/* Subject details: Type, Sex, Age */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-muted-foreground">Type</Label>
-                  <Select
-                    value={editForm.reportType}
-                    onValueChange={v => setEditForm(p => ({ ...p, reportType: v }))}
-                  >
-                    <SelectTrigger className="h-9 bg-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Individual">Individual</SelectItem>
-                      <SelectItem value="Group">Group</SelectItem>
-                      <SelectItem value="Community">Community</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-muted-foreground">Sex</Label>
-                  <Select
-                    value={editForm.sex}
-                    onValueChange={v => setEditForm(p => ({ ...p, sex: v }))}
-                  >
-                    <SelectTrigger className="h-9 bg-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Unknown">Unknown</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-muted-foreground">Approx. Age</Label>
-                  <Input
-                    value={editForm.approximateAge}
-                    onChange={e => setEditForm(p => ({ ...p, approximateAge: e.target.value }))}
-                    placeholder="e.g. 25"
-                    className="h-9 bg-white"
-                  />
-                </div>
-              </div>
-
-              {/* Reporter Info */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-muted-foreground">Reported By</Label>
-                  <Input
-                    value={editForm.fullName}
-                    onChange={e => setEditForm(p => ({ ...p, fullName: e.target.value }))}
-                    placeholder="Name"
-                    className="h-9 bg-white"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-muted-foreground">Contact</Label>
-                  <Input
-                    value={editForm.contactNumber}
-                    onChange={e => setEditForm(p => ({ ...p, contactNumber: e.target.value }))}
-                    placeholder="Phone number"
-                    className="h-9 bg-white"
-                  />
-                </div>
-              </div>
-
-              {/* Location Address */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-muted-foreground">Location Address</Label>
-                <Input
-                  value={editForm.locationAddress}
-                  onChange={e => setEditForm(p => ({ ...p, locationAddress: e.target.value }))}
-                  placeholder="Street, Barangay, Municipality"
-                  className="h-9 bg-white"
-                />
-              </div>
-
-              {/* Map Coordinates Picker */}
-              <div>
-                <Label className="mb-2 block text-xs font-semibold text-muted-foreground">
-                  Pin Location on Map <span className="text-muted-foreground font-normal text-[10px]">(Camarines Norte)</span>
-                </Label>
-                <MapPickerField
-                  latitude={editForm.latitude}
-                  longitude={editForm.longitude}
-                  onChange={(lat, lng) => setEditForm(p => ({ ...p, latitude: lat, longitude: lng }))}
-                />
-              </div>
-
-              {/* Edit mode action buttons */}
-              <div className="flex justify-end gap-2 pt-3 border-t border-border">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsEditing(false)}
-                  disabled={saving}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleSaveDetails}
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving Details...
-                    </>
-                  ) : (
-                    'Save Details'
-                  )}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
+          <div className="space-y-4">
               {/* Photo */}
               <AttachmentGallery attachments={r.attachments} />
 
@@ -898,7 +563,6 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 </Button>
               </div>
             </div>
-          )}
         </DialogContent>
       </Dialog>
 
