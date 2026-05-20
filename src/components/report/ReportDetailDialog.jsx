@@ -79,6 +79,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const [enrichedReport, setEnrichedReport] = useState(null);
   const [proofFiles, setProofFiles] = useState([]);
   const [proofPreviews, setProofPreviews] = useState([]);
+  const [existingProofImages, setExistingProofImages] = useState([]);
   const fileInputRef = useRef(null);
 
 
@@ -94,6 +95,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     setNotes(report.adminNotes ?? '');
     setUpdateMsg('');
     setProofFiles([]);
+    setExistingProofImages(report.proofImages || []);
     setEnrichedReport(report);
 
     // Mark as seen immediately upon opening if not already seen
@@ -139,7 +141,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     setSaving(true);
     try {
       let proofUrls = [];
-      if ((status === 'Closed' || status === 'Resolved') && proofFiles.length > 0) {
+      if (proofFiles.length > 0) {
         toast.info(`Uploading ${proofFiles.length} proof image(s)...`);
         for (const file of proofFiles) {
           const url = await uploadImageToCloudinary(file);
@@ -148,9 +150,15 @@ export default function ReportDetailDialog({ report, open, onClose }) {
       }
 
       await addReportStatusUpdate(r.id, status, updateMsg, proofUrls);
-      if (notes !== (r.adminNotes ?? '')) {
-        await updateReportMeta(r.id, { adminNotes: notes });
+      const updatedFields = {
+        adminNotes: notes,
+        admin_seen: true,
+        proofImages: [...existingProofImages, ...proofUrls],
+      };
+      if (status === 'Resolved') {
+        updatedFields.resolutionTimestamp = new Date();
       }
+      await updateReportMeta(r.id, updatedFields);
       toast.success('Report status updated');
       setUpdateMsg('');
       setProofFiles([]);
@@ -167,7 +175,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     setSaving(true);
     try {
       let proofUrls = [];
-      if ((status === 'Closed' || status === 'Resolved') && status !== r.status && proofFiles.length > 0) {
+      if (proofFiles.length > 0) {
         toast.info(`Uploading ${proofFiles.length} proof image(s)...`);
         for (const file of proofFiles) {
           const url = await uploadImageToCloudinary(file);
@@ -182,11 +190,13 @@ export default function ReportDetailDialog({ report, open, onClose }) {
           await updateReportStatus(r.id, status);
         }
       }
-      await updateReportMeta(r.id, {
+      const metaUpdate = {
         adminNotes: notes,
         admin_seen: true,
+        proofImages: [...existingProofImages, ...proofUrls],
         ...(status === 'Resolved' ? { resolutionTimestamp: new Date() } : {}),
-      });
+      };
+      await updateReportMeta(r.id, metaUpdate);
       toast.success('Report saved');
       setUpdateMsg('');
       setProofFiles([]);
@@ -420,10 +430,38 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                         </Button>
                       </div>
                       <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
+                        {existingProofImages.length > 0 && (
+                          <>
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                              <p className="text-sm text-foreground font-medium">{existingProofImages.length} existing image{existingProofImages.length !== 1 ? 's' : ''}</p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setExistingProofImages([])}
+                              >
+                                Clear existing
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                              {existingProofImages.map((src, i) => (
+                                <div key={`existing-${i}`} className="relative overflow-hidden rounded-md border border-border bg-muted">
+                                  <img src={src} alt={`Existing proof ${i + 1}`} className="h-24 w-full object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => setExistingProofImages(prev => prev.filter((_, idx) => idx !== i))}
+                                    className="absolute top-1 right-1 bg-destructive text-white rounded-full h-6 w-6 flex items-center justify-center text-[10px] font-bold hover:bg-destructive/90"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
                         {proofFiles.length > 0 ? (
                           <>
                             <div className="flex items-center justify-between gap-3 mb-3">
-                              <p className="text-sm text-foreground font-medium">{proofFiles.length} image{proofFiles.length !== 1 ? 's' : ''} selected.</p>
+                              <p className="text-sm text-foreground font-medium">{proofFiles.length} new image{proofFiles.length !== 1 ? 's' : ''} selected.</p>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -436,7 +474,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                               {proofPreviews.map((src, i) => (
-                                <div key={i} className="relative overflow-hidden rounded-md border border-border bg-muted">
+                                <div key={`preview-${i}`} className="relative overflow-hidden rounded-md border border-border bg-muted">
                                   <img src={src} alt={`Proof ${i + 1}`} className="h-24 w-full object-cover" />
                                   <button
                                     type="button"
@@ -453,9 +491,9 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                               ))}
                             </div>
                           </>
-                        ) : (
+                        ) : existingProofImages.length === 0 ? (
                           <p className="text-xs">No images selected yet.</p>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   )}
