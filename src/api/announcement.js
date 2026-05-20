@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   collectionGroup,
   getDoc,
+  deleteField,
 } from 'firebase/firestore';
 import { toast } from 'sonner';
 
@@ -201,10 +202,14 @@ export async function updateAnnouncementStatus(announcementId, status, evidenceU
     }
   }
 
-  await updateDoc(annRef, {
-    status: mapped,
-    ...(evidenceUrl ? { evidenceUrl } : {}),
-  });
+  const updatePayload = { status: mapped };
+  if (evidenceUrl === null) {
+    updatePayload.evidenceUrl = deleteField();
+  } else if (evidenceUrl) {
+    updatePayload.evidenceUrl = evidenceUrl;
+  }
+
+  await updateDoc(annRef, updatePayload);
 }
 
 /**

@@ -25,6 +25,7 @@ export default function Announcements() {
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [evidenceUploadProgress, setEvidenceUploadProgress] = useState(0);
   const [isReplacingEvidence, setIsReplacingEvidence] = useState(false);
+  const [clearEvidence, setClearEvidence] = useState(false);
   const statusTargetIsClosed = statusTarget?.status === 'Case Closed';
   const fileInputRef = useRef(null);
 
@@ -71,6 +72,7 @@ export default function Announcements() {
     setEvidenceFile(file);
     setEvidencePreview(URL.createObjectURL(file));
     setIsReplacingEvidence(true);
+    setClearEvidence(false);
   };
 
   const handleStatusSelection = (value) => {
@@ -78,6 +80,7 @@ export default function Announcements() {
     setEvidenceFile(null);
     setEvidencePreview(null);
     setIsReplacingEvidence(false);
+    setClearEvidence(false);
 
     if (value === 'Resolved' || value === 'Case Closed') {
       if (!statusTarget?.evidenceUrl) {
@@ -88,12 +91,16 @@ export default function Announcements() {
 
   const handleUpdateStatus = async () => {
     if (!statusTarget || !newStatus || statusTargetIsClosed) return;
-    if ((newStatus === 'Resolved' || newStatus === 'Case Closed') && !evidenceFile && !statusTarget?.evidenceUrl) {
+    if (
+      (newStatus === 'Resolved' || newStatus === 'Case Closed') &&
+      !evidenceFile &&
+      (!statusTarget?.evidenceUrl || clearEvidence)
+    ) {
       toast.error('Please select a proof image before marking this announcement resolved or closed.');
       return;
     }
-    let evidenceUrl = '';
 
+    let evidenceUrl;
     if (evidenceFile) {
       setUploadingEvidence(true);
       try {
@@ -109,6 +116,8 @@ export default function Announcements() {
       }
       setUploadingEvidence(false);
       setEvidenceUploadProgress(0);
+    } else if (clearEvidence) {
+      evidenceUrl = null;
     }
 
     try {
@@ -350,6 +359,7 @@ export default function Announcements() {
                         setEvidenceFile(null);
                         setEvidencePreview(null);
                         setIsReplacingEvidence(false);
+                        setClearEvidence(false);
                         if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
                     >
@@ -364,15 +374,37 @@ export default function Announcements() {
                     />
                   )}
                 </div>
+              ) : clearEvidence ? (
+                <div className="mt-3 rounded-2xl border border-border bg-white p-3 text-sm text-slate-600">
+                  Existing proof will be removed when you save.
+                </div>
               ) : statusTarget?.evidenceUrl ? (
-                <div className="mt-3 rounded-2xl overflow-hidden border border-border bg-white">
-                  <img
-                    src={statusTarget.evidenceUrl}
-                    alt="Existing evidence preview"
-                    className="w-full h-52 object-cover"
-                  />
-                  <div className="px-3 py-2 text-[11px] text-slate-600 bg-slate-50">
-                    Current proof image
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold">Current proof image</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEvidenceFile(null);
+                        setEvidencePreview(null);
+                        setIsReplacingEvidence(false);
+                        setClearEvidence(true);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                    >
+                      Remove existing proof
+                    </Button>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden border border-border bg-white">
+                    <img
+                      src={statusTarget.evidenceUrl}
+                      alt="Existing evidence preview"
+                      className="w-full h-52 object-cover"
+                    />
+                    <div className="px-3 py-2 text-[11px] text-slate-600 bg-slate-50">
+                      Current proof image
+                    </div>
                   </div>
                 </div>
               ) : (
