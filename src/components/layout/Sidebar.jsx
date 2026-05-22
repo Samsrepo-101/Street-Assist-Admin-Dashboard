@@ -108,11 +108,11 @@ export default function Sidebar({ open, onClose }) {
   }, [adminRole]);
 
   const visibleNavItems = isMissingAnimalsAdminRole(adminRole)
-    ? navItems.filter(item => item.path === '/reports' || item.path === '/announcements' || item.path === '/archive')
+    ? navItems.filter(item => item.path === '/reports' || item.path === '/announcements' || item.path === '/archive' || item.path === '/trash')
     : isHomelessAdminRole(adminRole)
-    ? navItems.filter(item => item.path === '/reports' || item.path === '/archive')
+    ? navItems.filter(item => item.path === '/reports' || item.path === '/archive' || item.path === '/trash')
     : isMissingPersonAdminRole(adminRole)
-    ? navItems.filter(item => item.path === '/announcements' || item.path === '/archive')
+    ? navItems.filter(item => item.path === '/announcements' || item.path === '/archive' || item.path === '/trash')
     : navItems;
 
   return (

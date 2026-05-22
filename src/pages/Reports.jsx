@@ -121,6 +121,20 @@ export default function Reports() {
     }
   };
 
+  const archiveSingleReport = async (reportId) => {
+    try {
+      await archiveReport(reportId);
+      toast.success('Report archived');
+      setSelected(prev => {
+        const next = new Set(prev);
+        next.delete(reportId);
+        return next;
+      });
+    } catch (err) {
+      toast.error('Failed to archive report');
+    }
+  };
+
   const downloadPDF = () => {
     const doc = new jsPDF();
     const pageW = doc.internal.pageSize.getWidth();
@@ -366,6 +380,17 @@ export default function Reports() {
                       }}
                     >
                       Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs font-semibold"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        archiveSingleReport(report.id);
+                      }}
+                    >
+                      <Archive className="h-3.5 w-3.5 mr-1" /> Archive
                     </Button>
                     <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
                   </div>

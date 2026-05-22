@@ -10,6 +10,7 @@ const pageTitles = {
   '/':              'Dashboard',
   '/reports':       'Reports Management',
   '/announcements': 'Announcements',
+  '/archive':       'Archive',
   '/trash':         'Trash',
   '/notifications': 'Notifications',
   '/profile':       'My Profile',
@@ -24,15 +25,15 @@ export default function AdminLayout() {
   const isHomelessAdmin = isHomelessAdminRole(adminRole);
   const isMissingPersonAdmin = isMissingPersonAdminRole(adminRole);
 
-  if (isMissingAnimalsAdmin && !['/reports', '/announcements', '/profile'].includes(location.pathname)) {
+  if (isMissingAnimalsAdmin && !['/reports', '/announcements', '/archive', '/trash', '/profile'].includes(location.pathname)) {
     return <Navigate to="/reports" replace />;
   }
 
-  if (isHomelessAdmin && !['/reports', '/profile'].includes(location.pathname)) {
+  if (isHomelessAdmin && !['/reports', '/archive', '/trash', '/profile'].includes(location.pathname)) {
     return <Navigate to="/reports" replace />;
   }
 
-  if (isMissingPersonAdmin && !['/announcements', '/profile'].includes(location.pathname)) {
+  if (isMissingPersonAdmin && !['/announcements', '/archive', '/trash', '/profile'].includes(location.pathname)) {
     return <Navigate to="/announcements" replace />;
   }
 

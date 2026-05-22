@@ -7,19 +7,22 @@ import { RotateCcw, Trash2, MapPin, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '../lib/AuthContext';
+import { canAccessReport } from '../lib/adminRoles.js';
 
 export default function Trash() {
   const [selected, setSelected] = useState(new Set());
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { adminRole } = useAuth();
 
   useEffect(() => {
     const unsub = subscribeToReports((allReports) => {
-      setReports(allReports.filter(r => r.deleted_at != null));
+      setReports(allReports.filter(r => r.deleted_at != null && canAccessReport(r, adminRole)));
       setIsLoading(false);
     });
     return unsub;
-  }, []);
+  }, [adminRole]);
 
   const toggleSelect = (id) => {
     setSelected(prev => {
