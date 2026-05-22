@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signIn } from '../api/auth.js';
 import { useAuth } from '../lib/AuthContext';
+import { isMissingAnimalsAdminRole } from '../lib/adminRoles.js';
 
 /**
  * Maps Firebase auth error codes to human-readable messages.
@@ -40,14 +41,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const { currentUser, isAdmin, isLoadingAuth } = useAuth();
+  const { currentUser, isAdmin, adminRole, isLoadingAuth } = useAuth();
 
   // If already authenticated as admin, redirect to dashboard
   useEffect(() => {
     if (!isLoadingAuth && currentUser && isAdmin) {
-      navigate('/', { replace: true });
+      navigate(isMissingAnimalsAdminRole(adminRole) ? '/reports' : '/', { replace: true });
     }
-  }, [currentUser, isAdmin, isLoadingAuth, navigate]);
+  }, [currentUser, isAdmin, adminRole, isLoadingAuth, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,10 +56,10 @@ export default function Login() {
     setError(null);
 
     try {
-      await signIn(email, password);
+      const role = await signIn(email, password);
       // signIn succeeded — onAuthStateChanged will fire in AuthContext,
       // which sets currentUser + isAdmin, and the useEffect above redirects.
-      navigate('/', { replace: true });
+      navigate(isMissingAnimalsAdminRole(role) ? '/reports' : '/', { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

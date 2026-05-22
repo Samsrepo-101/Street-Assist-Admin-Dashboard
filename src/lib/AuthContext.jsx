@@ -3,12 +3,14 @@ import { auth } from '../api/firebase.js';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserById } from '../api/users.js';
 import { signOut } from '../api/auth.js';
+import { getAdminRoleFromUserDoc, isAllowedAdminRole } from './adminRoles.js';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminRole, setAdminRole] = useState('');
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   useEffect(() => {
@@ -16,32 +18,22 @@ export const AuthProvider = ({ children }) => {
       if (firebaseUser === null) {
         setCurrentUser(null);
         setIsAdmin(false);
+        setAdminRole('');
         setIsLoadingAuth(false);
       } else {
         try {
           const userDoc = await getUserById(firebaseUser.uid);
-
-          // Accept common field name variants
-          const role =
-            userDoc?.role ||
-            userDoc?.userType ||
-            userDoc?.user_type ||
-            userDoc?.type ||
-            '';
-
-          const isAdminUser =
-            role === 'admin' ||
-            role === 'Admin' ||
-            userDoc?.isAdmin === true ||
-            userDoc?.is_admin === true ||
-            userDoc === null; // no doc = allow (admin-only app with single account)
+          const role = getAdminRoleFromUserDoc(userDoc);
+          const isAdminUser = isAllowedAdminRole(role);
 
           setIsAdmin(isAdminUser);
+          setAdminRole(role);
           setCurrentUser(firebaseUser);
         } catch (error) {
           console.error('Failed to fetch user document:', error);
           setCurrentUser(firebaseUser);
           setIsAdmin(false);
+          setAdminRole('');
         } finally {
           setIsLoadingAuth(false);
         }
@@ -57,7 +49,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, isAdmin, isLoadingAuth, logout }}>
+    <AuthContext.Provider value={{ currentUser, isAdmin, adminRole, isLoadingAuth, logout }}>
       {children}
     </AuthContext.Provider>
   );

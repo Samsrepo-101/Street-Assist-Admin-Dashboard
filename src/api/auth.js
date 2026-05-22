@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getUserById } from './users.js';
+import { ADMIN_ROLES, getAdminRoleFromUserDoc, isAllowedAdminRole } from '../lib/adminRoles.js';
 
 // ---------------------------------------------------------------------------
 // Sign in
@@ -35,27 +36,19 @@ export async function signIn(email, password) {
 
   if (userDoc === null) {
     console.warn('[auth] No Firestore user doc — allowing login');
-    return;
+    return ADMIN_ROLES.MAIN;
   }
 
-  const role =
-    userDoc?.role ||
-    userDoc?.userType ||
-    userDoc?.user_type ||
-    userDoc?.type ||
-    '';
-
-  const isAdmin =
-    role === 'admin' ||
-    role === 'Admin' ||
-    userDoc?.isAdmin === true ||
-    userDoc?.is_admin === true;
+  const role = getAdminRoleFromUserDoc(userDoc);
+  const isAdmin = isAllowedAdminRole(role);
 
   if (!isAdmin) {
-    console.warn('[auth] Role check failed:', role);
+    console.warn('[auth] Role check failed:', userDoc?.role || role);
     await firebaseSignOut(auth);
     throw new Error('Access denied');
   }
+
+  return role;
 }
 
 // ---------------------------------------------------------------------------
@@ -96,8 +89,8 @@ export async function registerUser({ displayName, email, password, role }) {
       email,
       role,
       isAdmin: true,
-      userType: 'admin',
-      user_type: 'admin',
+      userType: role === ADMIN_ROLES.MISSING_ANIMALS ? ADMIN_ROLES.MISSING_ANIMALS : 'admin',
+      user_type: role === ADMIN_ROLES.MISSING_ANIMALS ? ADMIN_ROLES.MISSING_ANIMALS : 'admin',
       photoURL: '',
       createdAt: serverTimestamp(),
       lastSignInAt: serverTimestamp(),

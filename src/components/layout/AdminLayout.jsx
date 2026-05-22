@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import NotificationPopper from './NotificationPopper';
+import { useAuth } from '../../lib/AuthContext';
+import { isMissingAnimalsAdminRole } from '../../lib/adminRoles.js';
 
 const pageTitles = {
   '/':              'Dashboard',
@@ -16,7 +18,13 @@ const pageTitles = {
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { adminRole } = useAuth();
   const title = pageTitles[location.pathname] || 'StreetAssist Admin';
+  const isMissingAnimalsAdmin = isMissingAnimalsAdminRole(adminRole);
+
+  if (isMissingAnimalsAdmin && !['/reports', '/profile'].includes(location.pathname)) {
+    return <Navigate to="/reports" replace />;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

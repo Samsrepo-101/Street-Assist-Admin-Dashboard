@@ -10,6 +10,8 @@ import ReportDetailDialog from '../components/report/ReportDetailDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
+import { useAuth } from '../lib/AuthContext';
+import { canAccessReport, isMissingAnimalsAdminRole } from '../lib/adminRoles.js';
 
 const CAM_NORTE_TOWNS = [
   'All Towns', 'Basud', 'Capalonga', 'Daet', 'Jose Panganiban', 'Labo',
@@ -28,6 +30,8 @@ export default function Reports() {
   const [timeFilter, setTimeFilter] = useState('All Dates');
   const [selectedReport, setSelectedReport] = useState(null);
   const [selected, setSelected] = useState(new Set());
+  const { adminRole } = useAuth();
+  const isMissingAnimalsAdmin = isMissingAnimalsAdminRole(adminRole);
 
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,6 +58,7 @@ export default function Reports() {
     return reports.filter(r => {
       // Exclude soft-deleted reports
       if (r.deleted_at) return false;
+      if (!canAccessReport(r, adminRole)) return false;
 
       const matchSearch = !search ||
         r.description?.toLowerCase().includes(search.toLowerCase()) ||
@@ -65,7 +70,7 @@ export default function Reports() {
 
       const matchStatus = statusFilter === 'All' || r.status === statusFilter;
       const reportCategory = r.category || "Individual";
-      const matchCategory = categoryFilter === 'All' || reportCategory === categoryFilter;
+      const matchCategory = isMissingAnimalsAdmin || categoryFilter === 'All' || reportCategory === categoryFilter;
       const matchTown = townFilter === 'All Towns' ||
         (r.locationAddress || r.location_address)?.toLowerCase().includes(townFilter.toLowerCase());
 
@@ -79,7 +84,7 @@ export default function Reports() {
 
       return matchSearch && matchStatus && matchCategory && matchTown && matchTime;
     });
-  }, [reports, search, statusFilter, categoryFilter, townFilter, timeFilter]);
+  }, [reports, search, statusFilter, categoryFilter, townFilter, timeFilter, adminRole, isMissingAnimalsAdmin]);
 
   const toggleSelect = (id) => {
     setSelected(prev => {
@@ -159,9 +164,10 @@ export default function Reports() {
     return <div className="space-y-3 w-full">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}</div>;
   }
 
-  const pendingCount = reports.filter(r => r.status === 'Pending' && !r.deleted_at).length;
-  const onProgressCount = reports.filter(r => r.status === 'In Progress' && !r.deleted_at).length;
-  const newCount = reports.filter(r => !r.admin_seen && !r.deleted_at).length;
+  const accessibleReports = reports.filter(r => !r.deleted_at && canAccessReport(r, adminRole));
+  const pendingCount = accessibleReports.filter(r => r.status === 'Pending').length;
+  const onProgressCount = accessibleReports.filter(r => r.status === 'In Progress').length;
+  const newCount = accessibleReports.filter(r => !r.admin_seen).length;
 
   return (
     <div className="space-y-5 w-full">
@@ -169,7 +175,7 @@ export default function Reports() {
       {/* Summary pills */}
       <div className="flex flex-wrap gap-2">
         {[
-          { label: 'Total', value: reports.filter(r => !r.deleted_at).length, color: 'bg-primary/10 text-primary' },
+          { label: isMissingAnimalsAdmin ? 'Animal Reports' : 'Total', value: accessibleReports.length, color: 'bg-primary/10 text-primary' },
           { label: 'Pending', value: pendingCount, color: 'bg-amber-50 text-amber-700' },
           { label: 'On Progress', value: onProgressCount, color: 'bg-teal-50 text-teal-700' },
           { label: 'Unseen', value: newCount, color: 'bg-red-50 text-red-700' },
@@ -192,16 +198,22 @@ export default function Reports() {
               className="pl-8 h-9 text-sm bg-muted/40 border-0 focus-visible:ring-1"
             />
           </div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-40 h-9 text-sm bg-muted/40 border-0">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Categories</SelectItem>
-              <SelectItem value="Individual">Individual</SelectItem>
-              <SelectItem value="Animal">Animal</SelectItem>
-            </SelectContent>
-          </Select>
+          {isMissingAnimalsAdmin ? (
+            <span className="h-9 inline-flex items-center rounded-md bg-emerald-50 px-3 text-sm font-semibold text-emerald-700">
+              Animal reports only
+            </span>
+          ) : (
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-40 h-9 text-sm bg-muted/40 border-0">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Categories</SelectItem>
+                <SelectItem value="Individual">Individual</SelectItem>
+                <SelectItem value="Animal">Animal</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-36 h-9 text-sm bg-muted/40 border-0">
               <SelectValue placeholder="Status" />

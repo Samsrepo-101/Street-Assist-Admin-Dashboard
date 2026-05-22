@@ -6,6 +6,7 @@ import { uploadImageToCloudinary } from '../api/cloudinary.js';
 import { toast } from 'sonner';
 import { User, Camera, Loader2, Shield, Clock, Hash, Mail } from 'lucide-react';
 import { format } from 'date-fns';
+import { ADMIN_ROLES, isMissingAnimalsAdminRole } from '../lib/adminRoles.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,7 +39,7 @@ function InfoRow({ icon: Icon, label, value }) {
 // Page
 // ---------------------------------------------------------------------------
 export default function Profile() {
-  const { currentUser } = useAuth();
+  const { currentUser, adminRole } = useAuth();
   const [userDoc, setUserDoc]           = useState(null);
   const [displayName, setDisplayName]   = useState('');
   const [saving, setSaving]             = useState(false);
@@ -47,6 +48,7 @@ export default function Profile() {
   const [newAdminName, setNewAdminName] = useState('');
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState(ADMIN_ROLES.MAIN);
   const [creatingAdmin, setCreatingAdmin] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -96,11 +98,12 @@ export default function Profile() {
         displayName: newAdminName.trim(),
         email: newAdminEmail.trim(),
         password: newAdminPassword,
-        role: 'admin',
+        role: newAdminRole,
       });
       setNewAdminName('');
       setNewAdminEmail('');
       setNewAdminPassword('');
+      setNewAdminRole(ADMIN_ROLES.MAIN);
       toast.success('New admin account created successfully.');
     } catch (err) {
       console.error('[profile] create admin error:', err);
@@ -148,6 +151,7 @@ export default function Profile() {
   }
 
   const photoURL = userDoc.photoURL || currentUser?.photoURL || '';
+  const canCreateAdmins = !isMissingAnimalsAdminRole(adminRole);
 
   return (
     <div className="w-full space-y-5">
@@ -294,6 +298,7 @@ export default function Profile() {
             </form>
           </div>
 
+          {canCreateAdmins && (
           <div className="bg-white border border-border rounded-lg p-5 mt-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
@@ -339,6 +344,21 @@ export default function Profile() {
               </div>
 
               <div>
+                <label htmlFor="newAdminRole" className="block text-xs font-medium text-muted-foreground mb-1">
+                  Admin Role
+                </label>
+                <select
+                  id="newAdminRole"
+                  value={newAdminRole}
+                  onChange={(e) => setNewAdminRole(e.target.value)}
+                  className="w-full rounded border border-border bg-white px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                >
+                  <option value={ADMIN_ROLES.MAIN}>Main Admin</option>
+                  <option value={ADMIN_ROLES.MISSING_ANIMALS}>Missing Animals Admin</option>
+                </select>
+              </div>
+
+              <div>
                 <label htmlFor="newAdminPassword" className="block text-xs font-medium text-muted-foreground mb-1">
                   Password
                 </label>
@@ -365,6 +385,7 @@ export default function Profile() {
               </div>
             </form>
           </div>
+          )}
         </div>
       </div>
     </div>

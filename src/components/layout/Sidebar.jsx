@@ -6,6 +6,7 @@ import { subscribeToAdminNotifications } from '../../api/notifications.js';
 import { subscribeToReports } from '../../api/reports.js';
 import { collectionGroup, query, onSnapshot } from 'firebase/firestore';
 import { db } from '../../api/firebase.js';
+import { canAccessReport, isMissingAnimalsAdminRole } from '../../lib/adminRoles.js';
 
 const navItems = [
   { path: '/',              label: 'Dashboard',    icon: LayoutDashboard },
@@ -29,23 +30,33 @@ const S = {
 
 export default function Sidebar({ open, onClose }) {
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, adminRole } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadReportsCount, setUnreadReportsCount] = useState(0);
   const [unreadCommentsCount, setUnreadCommentsCount] = useState(0);
 
   useEffect(() => {
+    const isMissingAnimalsAdmin = isMissingAnimalsAdminRole(adminRole);
+
     // 1. Unread notifications
-    const unsub = subscribeToAdminNotifications(notifs => {
+    const unsub = isMissingAnimalsAdmin ? null : subscribeToAdminNotifications(notifs => {
       setUnreadCount(notifs.filter(n => !n.isRead).length);
     });
 
     // 2. Unread reports count (admin_seen: false, excluding deleted)
     const unsubReports = subscribeToReports(reports => {
-      setUnreadReportsCount(reports.filter(r => !r.admin_seen && !r.deleted_at).length);
+      setUnreadReportsCount(reports.filter(r => !r.admin_seen && !r.deleted_at && canAccessReport(r, adminRole)).length);
     });
 
     // 3. Unread comments count across announcements
+    if (isMissingAnimalsAdmin) {
+      setUnreadCount(0);
+      setUnreadCommentsCount(0);
+      return () => {
+        unsubReports();
+      };
+    }
+
     const commentsQ = query(collectionGroup(db, 'comments'));
     
     const calculateUnreadComments = (commentsList) => {
@@ -83,12 +94,16 @@ export default function Sidebar({ open, onClose }) {
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      unsub();
+      unsub?.();
       unsubReports();
       unsubComments();
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [adminRole]);
+
+  const visibleNavItems = isMissingAnimalsAdminRole(adminRole)
+    ? navItems.filter(item => item.path === '/reports')
+    : navItems;
 
   return (
     <>
@@ -125,7 +140,7 @@ export default function Sidebar({ open, onClose }) {
           </p>
         </div>
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto pb-2">
-          {navItems.map(({ path, label, icon: Icon, badge }) => {
+          {visibleNavItems.map(({ path, label, icon: Icon, badge }) => {
             const isActive = location.pathname === path;
             const showBadge = badge && unreadCount > 0;
             return (
