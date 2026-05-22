@@ -117,10 +117,11 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
-    if (newStatus !== 'Closed' && r.status !== 'Closed') {
+    const nextCanManageProof = newStatus === 'Resolved' || newStatus === 'Closed' || r.status === 'Resolved' || r.status === 'Closed';
+    if (!nextCanManageProof) {
       setProofFiles([]);
     }
-    if (newStatus === 'Closed' && status !== newStatus) {
+    if ((newStatus === 'Resolved' || newStatus === 'Closed') && status !== newStatus) {
       if (fileInputRef.current) {
         fileInputRef.current.click();
       }
@@ -130,8 +131,8 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const handleProofSelection = async (event) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
-    if (status !== 'Closed' && r.status !== 'Closed') {
-      toast.error('Proof can only be added when the report is closed.');
+    if (status !== 'Resolved' && status !== 'Closed' && r.status !== 'Resolved' && r.status !== 'Closed') {
+      toast.error('Proof can only be added when the report is Resolved or Closed.');
       event.target.value = '';
       return;
     }
@@ -144,7 +145,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
   const r = enrichedReport;
   const isClosed = r.status === 'Closed';
-  const canManageProof = isClosed || status === 'Closed';
+  const canManageProof = status === 'Resolved' || status === 'Closed' || r.status === 'Resolved' || r.status === 'Closed';
   const statusCfg = getStatusConfig(r.status);
   const hasLocation = r.latitude != null && r.longitude != null;
 
@@ -155,7 +156,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
       let proofUrls = [];
       if (proofFiles.length > 0) {
         if (!canManageProof) {
-          toast.error('Proof can only be added when the report is closed.');
+          toast.error('Proof can only be added when the report is Resolved or Closed.');
           return;
         }
         toast.info(`Uploading ${proofFiles.length} proof media item(s)...`);
@@ -193,7 +194,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
       let proofUrls = [];
       if (proofFiles.length > 0) {
         if (!canManageProof) {
-          toast.error('Proof can only be added when the report is closed.');
+          toast.error('Proof can only be added when the report is Resolved or Closed.');
           return;
         }
         toast.info(`Uploading ${proofFiles.length} proof media item(s)...`);
@@ -513,7 +514,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                     size="sm"
                     onClick={() => {
                       if (!canManageProof) {
-                        toast.error('Set the report status to Closed before adding proof.');
+                        toast.error('Set the report status to Resolved or Closed before adding proof.');
                         return;
                       }
                       fileInputRef.current?.click();
@@ -528,7 +529,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
                   {!canManageProof && (
                     <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 border border-amber-200">
-                      Proof can be added only when the report is closed.
+                      Proof can be added only when the report is Resolved or Closed.
                     </p>
                   )}
                   {existingProofImages.length > 0 && (
