@@ -10,7 +10,7 @@ export default function RecentReportsList({ reports }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="flex flex-col gap-3 px-4 py-4 border-b border-border sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <h3 className="text-sm font-bold text-foreground">Recent Reports</h3>
           <p className="text-xs text-muted-foreground mt-0.5">{reports.length} total incident reports</p>
@@ -34,7 +34,7 @@ export default function RecentReportsList({ reports }) {
               <Link
                 key={report.id}
                 to={`/reports`}
-                className="flex items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors group"
+                className="flex items-start gap-3 px-4 py-4 hover:bg-muted/30 transition-colors group sm:gap-4 sm:px-6"
               >
                 {/* Status dot */}
                 <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${sc.dot}`} />
@@ -50,7 +50,7 @@ export default function RecentReportsList({ reports }) {
                   <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
                     {report.description}
                   </p>
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-muted-foreground">
                     {(report.fullName || report.reporter_name) && (
                       <span className="flex items-center gap-1">
                         <User className="h-3 w-3" />{report.fullName || report.reporter_name}

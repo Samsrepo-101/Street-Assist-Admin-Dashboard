@@ -93,7 +93,7 @@ function ReportFeedItem({ report }) {
               {report.locationAddress || report.location_address}
             </span>
           )}
-          <span className="ml-auto">{timeAgo(date)}</span>
+          <span className="w-full sm:ml-auto sm:w-auto">{timeAgo(date)}</span>
         </div>
       </div>
     </Link>
@@ -128,13 +128,13 @@ function AnnouncementFeedItem({ ann }) {
         {ann.subtitle && (
           <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{ann.subtitle}</p>
         )}
-        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
           {ann.locationAddress && (
             <span className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />{ann.locationAddress}
             </span>
           )}
-          <span className="ml-auto">{timeAgo(date)}</span>
+          <span className="w-full sm:ml-auto sm:w-auto">{timeAgo(date)}</span>
         </div>
       </div>
     </Link>
@@ -157,14 +157,14 @@ function AdminNotifFeedItem({ notif, onMarkRead, onDelete }) {
         <Bell className="h-4 w-4 text-amber-600" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
+        <div className="flex flex-wrap items-center gap-2 mb-0.5">
           <span className={`text-sm leading-snug ${!notif.isRead ? 'font-semibold text-foreground' : 'text-foreground'}`}>
             {notif.title || typeLabel}
           </span>
           {!notif.isRead && (
             <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
           )}
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide ml-auto">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide sm:ml-auto">
             {typeLabel}
           </span>
         </div>
@@ -280,14 +280,14 @@ export default function Notifications() {
   return (
     <div className="w-full space-y-4">
       {/* Header row */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-base font-semibold text-foreground">Activity Feed</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             {allFeed.length} total items — reports, announcements, and system alerts
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {unreadCount > 0 && (
             <span className="text-xs font-semibold bg-primary/10 text-primary px-2.5 py-1 rounded border border-primary/20">
               {unreadCount} unread alert{unreadCount !== 1 ? 's' : ''}
@@ -302,7 +302,7 @@ export default function Notifications() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 overflow-x-auto border-b border-border">
         {TABS.map(tab => (
           <button
             key={tab.key}
@@ -366,7 +366,7 @@ export default function Notifications() {
       </div>
 
       {/* Summary footer */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-1">
         <span className="flex items-center gap-1.5">
           <FileText className="h-3.5 w-3.5" /> {reports.length} report{reports.length !== 1 ? 's' : ''}
         </span>

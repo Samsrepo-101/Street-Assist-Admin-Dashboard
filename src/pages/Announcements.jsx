@@ -274,11 +274,11 @@ export default function Announcements() {
 
   return (
     <div className="space-y-5 w-full">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-xs font-semibold bg-primary/10 text-primary px-3 py-1.5 rounded-full border border-primary/20">
           {filtered.length} announcement{filtered.length !== 1 ? 's' : ''}
         </span>
-        <Button onClick={() => setShowAdd(true)} className="h-9 text-sm font-semibold">
+        <Button onClick={() => setShowAdd(true)} className="h-9 w-full text-sm font-semibold sm:w-auto">
           <Plus className="h-4 w-4 mr-1.5" /> New Announcement
         </Button>
       </div>
@@ -286,7 +286,7 @@ export default function Announcements() {
       {/* Filters bar */}
       <div className="bg-white rounded-2xl shadow-sm border border-border p-4">
         <div className="flex flex-wrap gap-2.5 items-center">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <div className="relative w-full sm:min-w-[200px] sm:flex-1 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Search by title, description..."
@@ -300,8 +300,8 @@ export default function Announcements() {
               {isMissingPersonAdmin ? 'Missing person only' : 'Missing animal only'}
             </span>
           ) : (
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-44 h-9 text-sm bg-muted/40 border-0">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} className="w-full sm:w-auto">
+              <SelectTrigger className="w-full h-9 text-sm bg-muted/40 border-0 sm:w-44">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -311,8 +311,8 @@ export default function Announcements() {
               </SelectContent>
             </Select>
           )}
-          <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="w-40 h-9 text-sm bg-muted/40 border-0">
+          <Select value={dateFilter} onValueChange={setDateFilter} className="w-full sm:w-auto">
+            <SelectTrigger className="w-full h-9 text-sm bg-muted/40 border-0 sm:w-40">
               <SelectValue placeholder="Date" />
             </SelectTrigger>
             <SelectContent>
@@ -324,8 +324,8 @@ export default function Announcements() {
               <SelectItem value="Newest">Newest</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-44 h-9 text-sm bg-muted/40 border-0">
+          <Select value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-auto">
+            <SelectTrigger className="w-full h-9 text-sm bg-muted/40 border-0 sm:w-44">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -375,7 +375,7 @@ export default function Announcements() {
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Announcement:</p>
                 <p className="text-sm font-bold text-foreground truncate mt-0.5">{statusTarget.title}</p>
               </div>
-              <div className="flex justify-between items-center text-xs">
+              <div className="flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-muted-foreground">Current Status:</span>
                 <span className="font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">{statusTarget.status}</span>
               </div>
@@ -437,7 +437,7 @@ export default function Announcements() {
 
               {existingEvidenceImages.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-xs font-bold text-foreground">{existingEvidenceImages.length} existing {getProofMediaLabel(existingEvidenceImages.length)}</span>
                     <Button
                       type="button"
@@ -452,7 +452,7 @@ export default function Announcements() {
                       Clear all
                     </Button>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {existingEvidenceImages.map((src, i) => (
                       <div key={`existing-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
                         <ProofMediaPreview src={src} alt={`Existing proof ${i+1}`} className="h-16 w-full object-cover" />
@@ -474,7 +474,7 @@ export default function Announcements() {
 
               {evidenceFiles.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-xs font-bold text-foreground">{evidenceFiles.length} new {getProofMediaLabel(evidenceFiles.length)} selected</span>
                     <Button
                       type="button"
@@ -486,7 +486,7 @@ export default function Announcements() {
                       Clear new
                     </Button>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {evidencePreviews.map((src, i) => (
                       <div key={`preview-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
                         {isVideoFile(evidenceFiles[i]) ? (
@@ -521,7 +521,7 @@ export default function Announcements() {
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={() => setStatusTarget(null)}>Cancel</Button>
             <Button onClick={handleUpdateStatus} disabled={uploadingEvidence}>Update</Button>
           </div>

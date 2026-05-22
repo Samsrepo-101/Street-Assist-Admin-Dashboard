@@ -303,7 +303,7 @@ export default function Profile() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 rounded bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 sm:w-auto"
                 >
                   {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   {saving ? 'Saving…' : 'Save Changes'}
@@ -392,7 +392,7 @@ export default function Profile() {
                 <button
                   type="submit"
                   disabled={creatingAdmin}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 rounded bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 sm:w-auto"
                 >
                   {creatingAdmin && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   {creatingAdmin ? 'Creating…' : 'Create Admin'}

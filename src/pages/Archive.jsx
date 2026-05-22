@@ -116,7 +116,7 @@ export default function Archive() {
               {archivedReports.map((report) => {
                 const status = getStatusConfig(report.status);
                 return (
-                  <div key={report.id} className="flex items-center gap-4 px-6 py-4 hover:bg-muted/20 transition-colors">
+                  <div key={report.id} className="flex flex-col gap-3 px-4 py-4 hover:bg-muted/20 transition-colors sm:flex-row sm:items-center sm:gap-4 sm:px-6">
                     <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                       <FileText className="h-4 w-4" />
                     </div>
@@ -132,7 +132,7 @@ export default function Archive() {
                         <Clock className="h-3 w-3" /> Archived {formatArchivedDate(report.archived_at)}
                       </p>
                     </div>
-                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => restoreReport(report.id)}>
+                    <Button variant="outline" size="sm" className="h-8 w-full text-xs sm:w-auto" onClick={() => restoreReport(report.id)}>
                       <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Restore
                     </Button>
                   </div>
@@ -153,7 +153,7 @@ export default function Archive() {
           ) : (
             <div className="divide-y divide-border">
               {archivedAnnouncements.map((announcement) => (
-                <div key={announcement.id} className="flex items-center gap-4 px-6 py-4 hover:bg-muted/20 transition-colors">
+                <div key={announcement.id} className="flex flex-col gap-3 px-4 py-4 hover:bg-muted/20 transition-colors sm:flex-row sm:items-center sm:gap-4 sm:px-6">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <Megaphone className="h-4 w-4" />
                   </div>
@@ -169,7 +169,7 @@ export default function Archive() {
                       <Clock className="h-3 w-3" /> Archived {formatArchivedDate(announcement.archived_at)}
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => restoreAnnouncement(announcement.id)}>
+                  <Button variant="outline" size="sm" className="h-8 w-full text-xs sm:w-auto" onClick={() => restoreAnnouncement(announcement.id)}>
                     <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Restore
                   </Button>
                 </div>

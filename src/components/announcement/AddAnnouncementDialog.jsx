@@ -227,8 +227,8 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
           )}
 
           {/* Basic info */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
               <Label>Title <span className="text-destructive">*</span></Label>
               <Input
                 value={form.title}
@@ -279,7 +279,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label>Contact</Label>
               <Input value={form.contact} onChange={e => update('contact', e.target.value)} placeholder="Phone or email" disabled={isClosed} />
@@ -365,7 +365,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
 
           {announcement && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <Label>Proof / Evidence <span className="text-muted-foreground font-normal text-xs">(images or video up to 30 sec)</span></Label>
                 <Button
                   type="button"
@@ -389,7 +389,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
               <div className="rounded-lg border border-dashed border-border bg-slate-50 p-3 text-sm text-slate-600">
                 {existingProofImages.length > 0 && (
                   <div className="mb-3">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col gap-2 mb-2 sm:flex-row sm:items-center sm:justify-between">
                       <span className="text-xs font-bold text-foreground">{existingProofImages.length} existing {getProofMediaLabel(existingProofImages.length)}</span>
                       <Button
                         type="button"
@@ -401,7 +401,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
                         Clear existing
                       </Button>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                       {existingProofImages.map((src, i) => (
                         <div key={`existing-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
                           <ProofMediaPreview src={src} alt={`Existing proof ${i+1}`} />
@@ -420,7 +420,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
 
                 {proofFiles.length > 0 && (
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col gap-2 mb-2 sm:flex-row sm:items-center sm:justify-between">
                       <span className="text-xs font-bold text-foreground">{proofFiles.length} new {getProofMediaLabel(proofFiles.length)} selected</span>
                       <Button
                         type="button"
@@ -432,7 +432,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
                         Clear new
                       </Button>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                       {proofPreviews.map((src, i) => (
                         <div key={`preview-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
                           {isVideoFile(proofFiles[i]) ? (
@@ -465,7 +465,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
               Cancel
             </Button>

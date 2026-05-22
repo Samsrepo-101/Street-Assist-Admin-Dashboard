@@ -34,7 +34,7 @@ export default function Dashboard() {
   if (reportsLoading) {
     return (
       <div className="space-y-6 w-full">
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
         </div>
         <Skeleton className="h-96 rounded-2xl" />
@@ -46,7 +46,7 @@ export default function Dashboard() {
     <div className="space-y-6 w-full">
 
       {/* Welcome header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">Good morning, Admin 👋</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{format(new Date(), 'EEEE, MMMM dd, yyyy')} · Camarines Norte</p>
@@ -60,7 +60,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           label="Total Reports"
           value={total}

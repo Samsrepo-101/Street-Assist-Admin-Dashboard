@@ -30,7 +30,7 @@ export default function MapViewModal({ open, onClose, latitude, longitude, title
           {address && <p className="text-sm text-muted-foreground">{address}</p>}
         </DialogHeader>
 
-        <div className="h-80 w-full">
+        <div className="h-64 w-full sm:h-80">
           <MapContainer
             center={[latitude, longitude]}
             zoom={15}
@@ -47,8 +47,8 @@ export default function MapViewModal({ open, onClose, latitude, longitude, title
           </MapContainer>
         </div>
 
-        <div className="px-5 py-3 flex justify-between items-center border-t border-border bg-muted/30">
-          <span className="text-xs text-muted-foreground font-mono">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
+        <div className="flex flex-col gap-3 border-t border-border bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <span className="break-all text-xs text-muted-foreground font-mono">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
           <Button size="sm" asChild>
             <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
               <ExternalLink className="h-3.5 w-3.5" /> Open in Google Maps

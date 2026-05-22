@@ -20,7 +20,7 @@ export function Dialog({ open, onOpenChange, children }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => onOpenChange?.(false)}
@@ -34,7 +34,7 @@ export function DialogContent({ className, children, ...props }) {
   return (
     <div
       className={cn(
-        'relative z-50 grid w-full max-w-lg gap-4 bg-background p-6 shadow-lg rounded-lg border',
+        'relative z-50 grid w-full max-w-lg max-h-[calc(100vh-1.5rem)] gap-4 overflow-y-auto bg-background p-4 shadow-lg rounded-lg border sm:max-h-[calc(100vh-2rem)] sm:p-6',
         className
       )}
       onClick={(e) => e.stopPropagation()}

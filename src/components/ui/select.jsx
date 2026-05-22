@@ -9,7 +9,7 @@ function cn(...inputs) {
 
 const SelectContext = React.createContext(null);
 
-export function Select({ value, onValueChange, children, defaultValue }) {
+export function Select({ value, onValueChange, children, defaultValue, className }) {
   const [open, setOpen] = useState(false);
   const [internalValue, setInternalValue] = useState(defaultValue ?? '');
   const controlled = value !== undefined;
@@ -23,7 +23,7 @@ export function Select({ value, onValueChange, children, defaultValue }) {
 
   return (
     <SelectContext.Provider value={{ open, setOpen, value: currentValue, onSelect: handleSelect }}>
-      <div className="relative">{children}</div>
+      <div className={cn('relative', className)}>{children}</div>
     </SelectContext.Provider>
   );
 }
@@ -48,7 +48,7 @@ export function SelectTrigger({ className, children, ...props }) {
 
 export function SelectValue({ placeholder }) {
   const ctx = React.useContext(SelectContext);
-  return <span>{ctx.value || placeholder}</span>;
+  return <span className="truncate">{ctx.value || placeholder}</span>;
 }
 
 export function SelectContent({ className, children, ...props }) {

@@ -93,7 +93,7 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
             {announcement.subtitle && <p className="text-sm text-muted-foreground">{announcement.subtitle}</p>}
 
             {announcement.name && (
-              <div className="flex items-center gap-1.5 text-sm bg-primary/5 border border-primary/10 rounded-lg px-3 py-2">
+              <div className="flex flex-wrap items-center gap-1.5 text-sm bg-primary/5 border border-primary/10 rounded-lg px-3 py-2">
                 <User className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span className="font-semibold text-foreground">{announcement.name}</span>
                 {announcement.age && <span className="text-muted-foreground">· Age {announcement.age}</span>}
@@ -131,7 +131,7 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                 variant="outline"
                 size="sm"
                 onClick={() => onViewComments(announcement)}
-                className="flex-1 min-w-[140px]"
+                className="min-w-full flex-1 sm:min-w-[140px]"
               >
                 <MessageCircle className="h-3.5 w-3.5 mr-1" /> Comments
               </Button>
@@ -141,7 +141,7 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                   variant="outline"
                   size="sm"
                   onClick={() => onUpdateStatus(announcement)}
-                  className="flex-1 min-w-[140px]"
+                  className="min-w-full flex-1 sm:min-w-[140px]"
                 >
                   Update Status
                 </Button>
@@ -151,7 +151,7 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                 variant="outline"
                 size="sm"
                 onClick={() => onEdit(announcement)}
-                className="flex-1 min-w-[140px]"
+                className="min-w-full flex-1 sm:min-w-[140px]"
               >
                 <Edit className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
@@ -161,7 +161,7 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                   variant="outline"
                   size="sm"
                   onClick={() => setMapOpen(true)}
-                  className="flex-1 min-w-[140px]"
+                  className="min-w-full flex-1 sm:min-w-[140px]"
                 >
                   <Map className="h-3.5 w-3.5 mr-1" /> View Location
                 </Button>
@@ -171,7 +171,7 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                 variant="outline"
                 size="sm"
                 onClick={() => onArchive(announcement)}
-                className="flex-1 min-w-[140px]"
+                className="min-w-full flex-1 sm:min-w-[140px]"
               >
                 <Archive className="h-3.5 w-3.5 mr-1" /> Archive
               </Button>

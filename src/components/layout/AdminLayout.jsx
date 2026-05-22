@@ -48,7 +48,7 @@ export default function AdminLayout() {
           onMenuClick={() => setSidebarOpen(true)}
           title={title}
         />
-        <main className="flex-1 overflow-y-auto p-5 md:p-7">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-7">
           <Outlet />
         </main>
       </div>

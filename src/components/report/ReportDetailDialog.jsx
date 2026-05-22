@@ -303,7 +303,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
               {/* Subject info (approximateAge, sex, reportType) */}
               {(r.approximateAge || r.sex || r.reportType) && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {r.reportType && (
                     <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2">
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Type</p>
@@ -329,7 +329,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
               )}
 
               {/* Reporter info */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2.5">
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">
                     Reported By
@@ -355,7 +355,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
               </div>
 
               {/* Location + timestamp */}
-              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+              <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground sm:grid-cols-2">
                 <div className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
                   <div className="min-w-0">
@@ -413,7 +413,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
               {/* Update Status & Send Message Section */}
               <div className="bg-slate-50 border border-border rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                <div className="flex flex-col gap-2 border-b border-border/60 pb-2 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-xs font-bold text-foreground uppercase tracking-wide">Update Status & Progress</span>
                 </div>
                 
@@ -472,7 +472,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                       const cfg = getStatusConfig(upd.status);
                       return (
                         <div key={idx} className="p-3 text-xs space-y-1 bg-white">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                             <Badge variant="outline" className={`${cfg.badge} text-[10px] px-1.5 py-0`}>
                               {cfg.label}
                             </Badge>
@@ -503,7 +503,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
               {/* Proof / Evidence Section */}
               <div className="bg-slate-50 border border-border rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                <div className="flex flex-col gap-2 border-b border-border/60 pb-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <span className="text-xs font-bold text-foreground uppercase tracking-wide">Proof / Evidence</span>
                     <p className="text-[10px] text-muted-foreground mt-0.5">Images or videos up to 30 seconds</p>
@@ -534,7 +534,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                   )}
                   {existingProofImages.length > 0 && (
                     <div className="mb-3">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex flex-col gap-2 mb-2 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-xs font-bold text-foreground">{existingProofImages.length} existing {getProofMediaLabel(existingProofImages.length)}</span>
                         <Button
                           type="button"
@@ -547,7 +547,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                           Clear existing
                         </Button>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {existingProofImages.map((src, i) => (
                           <div key={`existing-${i}`} className="relative overflow-hidden border border-border bg-white rounded-md">
                             <ProofMediaPreview src={src} alt={`Existing proof ${i + 1}`} />
@@ -567,7 +567,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
                   {proofFiles.length > 0 && (
                     <div>
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex flex-col gap-2 mb-2 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-xs font-bold text-foreground">{proofFiles.length} new {getProofMediaLabel(proofFiles.length)} selected</span>
                         <Button
                           type="button"
@@ -579,7 +579,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                           Clear all
                         </Button>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {proofPreviews.map((src, i) => (
                           <div key={`preview-${i}`} className="relative overflow-hidden border border-border bg-white rounded-md">
                             {isVideoFile(proofFiles[i]) ? (
@@ -622,14 +622,14 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleExportPDF}
                   disabled={exporting}
-                  className="mr-auto text-xs font-medium"
+                  className="text-xs font-medium sm:mr-auto"
                 >
                   {exporting ? (
                     <>

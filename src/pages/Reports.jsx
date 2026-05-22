@@ -218,7 +218,7 @@ export default function Reports() {
       {/* Filters bar */}
       <div className="bg-white rounded-2xl shadow-sm border border-border p-4">
         <div className="flex flex-wrap gap-2.5 items-center">
-          <div className="relative flex-1 min-w-[180px] max-w-sm">
+          <div className="relative w-full sm:min-w-[180px] sm:flex-1 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Search by report ID, description, reporter..."
@@ -232,8 +232,8 @@ export default function Reports() {
               {isHomelessAdmin ? 'Individual reports only' : 'Animal reports only'}
             </span>
           ) : (
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-40 h-9 text-sm bg-muted/40 border-0">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} className="w-full sm:w-auto">
+              <SelectTrigger className="w-full h-9 text-sm bg-muted/40 border-0 sm:w-40">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -243,8 +243,8 @@ export default function Reports() {
               </SelectContent>
             </Select>
           )}
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-36 h-9 text-sm bg-muted/40 border-0">
+          <Select value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-auto">
+            <SelectTrigger className="w-full h-9 text-sm bg-muted/40 border-0 sm:w-36">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -254,16 +254,16 @@ export default function Reports() {
               <SelectItem value="Resolved">Resolved</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={townFilter} onValueChange={setTownFilter}>
-            <SelectTrigger className="w-44 h-9 text-sm bg-muted/40 border-0">
+          <Select value={townFilter} onValueChange={setTownFilter} className="w-full sm:w-auto">
+            <SelectTrigger className="w-full h-9 text-sm bg-muted/40 border-0 sm:w-44">
               <SelectValue placeholder="Town" />
             </SelectTrigger>
             <SelectContent>
               {CAM_NORTE_TOWNS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={timeFilter} onValueChange={setTimeFilter}>
-            <SelectTrigger className="w-36 h-9 text-sm bg-muted/40 border-0">
+          <Select value={timeFilter} onValueChange={setTimeFilter} className="w-full sm:w-auto">
+            <SelectTrigger className="w-full h-9 text-sm bg-muted/40 border-0 sm:w-36">
               <SelectValue placeholder="Time" />
             </SelectTrigger>
             <SelectContent>
@@ -273,16 +273,16 @@ export default function Reports() {
               <SelectItem value="Last 30 days">Last 30 days</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex gap-2 ml-auto">
-            <Button variant="outline" size="sm" className="h-9 text-sm font-medium" onClick={downloadPDF}>
+          <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
+            <Button variant="outline" size="sm" className="h-9 flex-1 text-sm font-medium sm:flex-none" onClick={downloadPDF}>
               <Download className="h-3.5 w-3.5 mr-1.5" /> Export PDF
             </Button>
             {selected.size > 0 && (
               <>
-                <Button variant="outline" size="sm" className="h-9 text-sm" onClick={archiveSelected}>
+                <Button variant="outline" size="sm" className="h-9 flex-1 text-sm sm:flex-none" onClick={archiveSelected}>
                   <Archive className="h-3.5 w-3.5 mr-1.5" /> Archive ({selected.size})
                 </Button>
-                <Button variant="destructive" size="sm" className="h-9 text-sm" onClick={moveToTrash}>
+                <Button variant="destructive" size="sm" className="h-9 flex-1 text-sm sm:flex-none" onClick={moveToTrash}>
                   <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Trash ({selected.size})
                 </Button>
               </>
@@ -293,7 +293,7 @@ export default function Reports() {
 
       {/* Reports list */}
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
-        <div className="px-6 py-3.5 border-b border-border flex items-center justify-between">
+        <div className="flex flex-col gap-1 border-b border-border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             {filtered.length} Report{filtered.length !== 1 ? 's' : ''} Found
           </p>
@@ -315,23 +315,25 @@ export default function Reports() {
               return (
                 <div
                   key={report.id}
-                  className="flex items-center gap-4 px-6 py-4 hover:bg-muted/20 transition-colors cursor-pointer group"
+                  className="flex flex-col gap-3 px-4 py-4 hover:bg-muted/20 transition-colors cursor-pointer group sm:flex-row sm:items-center sm:gap-4 sm:px-6"
                   onClick={() => setSelectedReport(report)}
                 >
                   {/* Checkbox */}
-                  <input
-                    type="checkbox"
-                    checked={selected.has(report.id)}
-                    onChange={(e) => { e.stopPropagation(); toggleSelect(report.id); }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="h-4 w-4 rounded border-border accent-primary shrink-0"
-                  />
+                  <div className="flex w-full items-start gap-3 sm:w-auto sm:items-center">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(report.id)}
+                      onChange={(e) => { e.stopPropagation(); toggleSelect(report.id); }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-1 h-4 w-4 rounded border-border accent-primary shrink-0 sm:mt-0"
+                    />
 
-                  {/* Color bar */}
-                  <div className="w-0.5 h-12 rounded-full shrink-0" style={{ backgroundColor: sc.bar }} />
+                    {/* Color bar */}
+                    <div className="w-0.5 h-12 rounded-full shrink-0" style={{ backgroundColor: sc.bar }} />
+                  </div>
 
                   {/* Main content */}
-                  <div className="flex-1 min-w-0">
+                  <div className="w-full flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-mono font-bold text-primary">
                         {report.report_id || report.id}
@@ -366,7 +368,7 @@ export default function Reports() {
                   </div>
 
                   {/* Status + chevron */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
                     <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${sc.badge}`}>
                       {sc.label}
                     </span>

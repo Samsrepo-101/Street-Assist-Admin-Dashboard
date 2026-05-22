@@ -64,7 +64,7 @@ export default function Trash() {
   return (
     <div className="space-y-4 w-full">
       {selected.size > 0 && (
-        <div className="flex gap-2 bg-white rounded-2xl p-3 shadow-sm border border-border">
+        <div className="flex flex-col gap-2 bg-white rounded-2xl p-3 shadow-sm border border-border sm:flex-row">
           <Button size="sm" onClick={restoreSelected} className="h-8 text-xs">
             <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Restore ({selected.size})
           </Button>
@@ -92,7 +92,7 @@ export default function Trash() {
         ) : (
           <div className="divide-y divide-border">
             {reports.map((report) => (
-              <div key={report.id} className="flex items-center gap-4 px-6 py-4 hover:bg-muted/20 transition-colors">
+              <div key={report.id} className="flex flex-col gap-3 px-4 py-4 hover:bg-muted/20 transition-colors sm:flex-row sm:items-center sm:gap-4 sm:px-6">
                 <input
                   type="checkbox"
                   checked={selected.has(report.id)}
@@ -104,7 +104,7 @@ export default function Trash() {
                     <span className="text-xs font-mono font-bold text-muted-foreground">{report.report_id || report.id}</span>
                   </div>
                   <p className="text-sm font-medium text-foreground/70 line-clamp-1">{report.description}</p>
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{report.locationAddress || report.location_address || 'Unknown'}</span>
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" />Deleted {format(new Date(report.deleted_at), 'MMM dd, yyyy')}</span>
                   </div>
