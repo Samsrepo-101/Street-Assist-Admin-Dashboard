@@ -6,7 +6,7 @@ import { uploadImageToCloudinary } from '../api/cloudinary.js';
 import { toast } from 'sonner';
 import { User, Camera, Loader2, Shield, Clock, Hash, Mail } from 'lucide-react';
 import { format } from 'date-fns';
-import { ADMIN_ROLES, isMissingAnimalsAdminRole } from '../lib/adminRoles.js';
+import { ADMIN_ROLES, getRoleLabel } from '../lib/adminRoles.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -51,6 +51,20 @@ export default function Profile() {
   const [newAdminRole, setNewAdminRole] = useState(ADMIN_ROLES.MAIN);
   const [creatingAdmin, setCreatingAdmin] = useState(false);
   const fileInputRef = useRef(null);
+  const roleOptions = adminRole === ADMIN_ROLES.MAIN
+    ? [
+        ADMIN_ROLES.MAIN,
+        ADMIN_ROLES.HOMELESS,
+        ADMIN_ROLES.MISSING_ANIMALS,
+        ADMIN_ROLES.MISSING_PERSON,
+      ]
+    : adminRole ? [adminRole] : [];
+
+  useEffect(() => {
+    if (roleOptions.length > 0 && !roleOptions.includes(newAdminRole)) {
+      setNewAdminRole(roleOptions[0]);
+    }
+  }, [adminRole, newAdminRole, roleOptions]);
 
   useEffect(() => {
     if (!currentUser?.uid) return;
@@ -98,12 +112,12 @@ export default function Profile() {
         displayName: newAdminName.trim(),
         email: newAdminEmail.trim(),
         password: newAdminPassword,
-        role: newAdminRole,
+        role: roleOptions.includes(newAdminRole) ? newAdminRole : adminRole,
       });
       setNewAdminName('');
       setNewAdminEmail('');
       setNewAdminPassword('');
-      setNewAdminRole(ADMIN_ROLES.MAIN);
+      setNewAdminRole(roleOptions[0] || ADMIN_ROLES.MAIN);
       toast.success('New admin account created successfully.');
     } catch (err) {
       console.error('[profile] create admin error:', err);
@@ -151,7 +165,7 @@ export default function Profile() {
   }
 
   const photoURL = userDoc.photoURL || currentUser?.photoURL || '';
-  const canCreateAdmins = !isMissingAnimalsAdminRole(adminRole);
+  const canCreateAdmins = roleOptions.length > 0;
 
   return (
     <div className="w-full space-y-5">
@@ -308,7 +322,7 @@ export default function Profile() {
                 </p>
               </div>
               <span className="inline-flex items-center rounded-full bg-muted/80 px-2.5 py-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                Admin only
+                {adminRole === ADMIN_ROLES.MAIN ? 'Admin only' : getRoleLabel(adminRole)}
               </span>
             </div>
 
@@ -353,8 +367,9 @@ export default function Profile() {
                   onChange={(e) => setNewAdminRole(e.target.value)}
                   className="w-full rounded border border-border bg-white px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
                 >
-                  <option value={ADMIN_ROLES.MAIN}>Main Admin</option>
-                  <option value={ADMIN_ROLES.MISSING_ANIMALS}>Missing Animals Admin</option>
+                  {roleOptions.map(role => (
+                    <option key={role} value={role}>{getRoleLabel(role)}</option>
+                  ))}
                 </select>
               </div>
 

@@ -29,8 +29,8 @@ export default function NotificationPopper() {
         const id = docSnap.id;
         const d = docSnap.data();
         
-        // Exclude deleted reports
-        if (d.deleted_at) return;
+        // Exclude deleted or archived reports
+        if (d.deleted_at || d.archived_at) return;
 
         // Skip if already seen in this session
         if (seenReportIds.current.has(id)) return;

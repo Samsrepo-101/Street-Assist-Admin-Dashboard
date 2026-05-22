@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import NotificationPopper from './NotificationPopper';
 import { useAuth } from '../../lib/AuthContext';
-import { isMissingAnimalsAdminRole } from '../../lib/adminRoles.js';
+import { isHomelessAdminRole, isMissingAnimalsAdminRole, isMissingPersonAdminRole } from '../../lib/adminRoles.js';
 
 const pageTitles = {
   '/':              'Dashboard',
@@ -21,9 +21,19 @@ export default function AdminLayout() {
   const { adminRole } = useAuth();
   const title = pageTitles[location.pathname] || 'StreetAssist Admin';
   const isMissingAnimalsAdmin = isMissingAnimalsAdminRole(adminRole);
+  const isHomelessAdmin = isHomelessAdminRole(adminRole);
+  const isMissingPersonAdmin = isMissingPersonAdminRole(adminRole);
 
   if (isMissingAnimalsAdmin && !['/reports', '/announcements', '/profile'].includes(location.pathname)) {
     return <Navigate to="/reports" replace />;
+  }
+
+  if (isHomelessAdmin && !['/reports', '/profile'].includes(location.pathname)) {
+    return <Navigate to="/reports" replace />;
+  }
+
+  if (isMissingPersonAdmin && !['/announcements', '/profile'].includes(location.pathname)) {
+    return <Navigate to="/announcements" replace />;
   }
 
   return (

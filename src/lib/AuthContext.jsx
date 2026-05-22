@@ -3,7 +3,7 @@ import { auth } from '../api/firebase.js';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserById } from '../api/users.js';
 import { signOut } from '../api/auth.js';
-import { getAdminRoleFromUserDoc, getStoredAdminRole, isAllowedAdminRole, isMissingAnimalsAdminRole, storeSelectedAdminRole } from './adminRoles.js';
+import { getAdminRoleFromUserDoc, getStoredAdminRole, isAllowedAdminRole, isScopedAdminRole, storeSelectedAdminRole } from './adminRoles.js';
 
 const AuthContext = createContext(null);
 
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
           const isAdminUser = isAllowedAdminRole(role);
           const selectedRole = getStoredAdminRole();
           const effectiveRole =
-            role === 'admin' && isMissingAnimalsAdminRole(selectedRole)
+            role === 'admin' && isScopedAdminRole(selectedRole)
               ? selectedRole
               : role;
 

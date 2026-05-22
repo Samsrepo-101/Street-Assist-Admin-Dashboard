@@ -107,6 +107,7 @@ function mapReport(docSnap) {
     adminNotes:           d.adminNotes           ?? d.admin_notes ?? '',
     admin_seen:           d.admin_seen           ?? false,
     deleted_at:           d.deleted_at           ?? null,
+    archived_at:          d.archived_at          ?? null,
 
     // Optional resolution fields
     resolvedByUserId:     d.resolvedByUserId      ?? null,
@@ -243,5 +244,19 @@ export async function moveReportToTrash(reportId) {
   const reportRef = doc(db, 'reports', reportId);
   await updateDoc(reportRef, {
     deleted_at: new Date().toISOString(),
+  });
+}
+
+export async function archiveReport(reportId) {
+  const reportRef = doc(db, 'reports', reportId);
+  await updateDoc(reportRef, {
+    archived_at: new Date().toISOString(),
+  });
+}
+
+export async function restoreArchivedReport(reportId) {
+  const reportRef = doc(db, 'reports', reportId);
+  await updateDoc(reportRef, {
+    archived_at: null,
   });
 }

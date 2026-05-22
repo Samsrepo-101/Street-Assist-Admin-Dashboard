@@ -1,17 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { subscribeToReports, moveReportToTrash, getStatusConfig, STATUS_CONFIG } from '../api/reports.js';
+import { subscribeToReports, moveReportToTrash, archiveReport, getStatusConfig, STATUS_CONFIG } from '../api/reports.js';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MapPin, Clock, Trash2, Download, User, FileText, ChevronRight } from 'lucide-react';
+import { Search, MapPin, Clock, Trash2, Download, User, FileText, ChevronRight, Archive } from 'lucide-react';
 import { format, isAfter, subDays } from 'date-fns';
 import ReportDetailDialog from '../components/report/ReportDetailDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import { useAuth } from '../lib/AuthContext';
-import { canAccessReport, isMissingAnimalsAdminRole } from '../lib/adminRoles.js';
+import { canAccessReport, isHomelessAdminRole, isMissingAnimalsAdminRole, isScopedReportAdminRole } from '../lib/adminRoles.js';
 
 const CAM_NORTE_TOWNS = [
   'All Towns', 'Basud', 'Capalonga', 'Daet', 'Jose Panganiban', 'Labo',
@@ -32,6 +32,8 @@ export default function Reports() {
   const [selected, setSelected] = useState(new Set());
   const { adminRole } = useAuth();
   const isMissingAnimalsAdmin = isMissingAnimalsAdminRole(adminRole);
+  const isHomelessAdmin = isHomelessAdminRole(adminRole);
+  const isScopedReportAdmin = isScopedReportAdminRole(adminRole);
 
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,8 +58,9 @@ export default function Reports() {
 
   const filtered = useMemo(() => {
     return reports.filter(r => {
-      // Exclude soft-deleted reports
+      // Exclude archived and soft-deleted reports
       if (r.deleted_at) return false;
+      if (r.archived_at) return false;
       if (!canAccessReport(r, adminRole)) return false;
 
       const matchSearch = !search ||
@@ -70,7 +73,7 @@ export default function Reports() {
 
       const matchStatus = statusFilter === 'All' || r.status === statusFilter;
       const reportCategory = r.category || "Individual";
-      const matchCategory = isMissingAnimalsAdmin || categoryFilter === 'All' || reportCategory === categoryFilter;
+      const matchCategory = isScopedReportAdmin || categoryFilter === 'All' || reportCategory === categoryFilter;
       const matchTown = townFilter === 'All Towns' ||
         (r.locationAddress || r.location_address)?.toLowerCase().includes(townFilter.toLowerCase());
 
@@ -84,7 +87,7 @@ export default function Reports() {
 
       return matchSearch && matchStatus && matchCategory && matchTown && matchTime;
     });
-  }, [reports, search, statusFilter, categoryFilter, townFilter, timeFilter, adminRole, isMissingAnimalsAdmin]);
+  }, [reports, search, statusFilter, categoryFilter, townFilter, timeFilter, adminRole, isScopedReportAdmin]);
 
   const toggleSelect = (id) => {
     setSelected(prev => {
@@ -103,6 +106,18 @@ export default function Reports() {
       setSelected(new Set());
     } catch (err) {
       toast.error('Failed to move reports to trash');
+    }
+  };
+
+  const archiveSelected = async () => {
+    try {
+      for (const id of selected) {
+        await archiveReport(id);
+      }
+      toast.success(`${selected.size} report(s) archived`);
+      setSelected(new Set());
+    } catch (err) {
+      toast.error('Failed to archive reports');
     }
   };
 
@@ -164,7 +179,7 @@ export default function Reports() {
     return <div className="space-y-3 w-full">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}</div>;
   }
 
-  const accessibleReports = reports.filter(r => !r.deleted_at && canAccessReport(r, adminRole));
+  const accessibleReports = reports.filter(r => !r.deleted_at && !r.archived_at && canAccessReport(r, adminRole));
   const pendingCount = accessibleReports.filter(r => r.status === 'Pending').length;
   const onProgressCount = accessibleReports.filter(r => r.status === 'In Progress').length;
   const newCount = accessibleReports.filter(r => !r.admin_seen).length;
@@ -175,7 +190,7 @@ export default function Reports() {
       {/* Summary pills */}
       <div className="flex flex-wrap gap-2">
         {[
-          { label: isMissingAnimalsAdmin ? 'Animal Reports' : 'Total', value: accessibleReports.length, color: 'bg-primary/10 text-primary' },
+          { label: isMissingAnimalsAdmin ? 'Animal Reports' : isHomelessAdmin ? 'Individual Reports' : 'Total', value: accessibleReports.length, color: 'bg-primary/10 text-primary' },
           { label: 'Pending', value: pendingCount, color: 'bg-amber-50 text-amber-700' },
           { label: 'On Progress', value: onProgressCount, color: 'bg-teal-50 text-teal-700' },
           { label: 'Unseen', value: newCount, color: 'bg-red-50 text-red-700' },
@@ -198,9 +213,9 @@ export default function Reports() {
               className="pl-8 h-9 text-sm bg-muted/40 border-0 focus-visible:ring-1"
             />
           </div>
-          {isMissingAnimalsAdmin ? (
+          {isScopedReportAdmin ? (
             <span className="h-9 inline-flex items-center rounded-md bg-emerald-50 px-3 text-sm font-semibold text-emerald-700">
-              Animal reports only
+              {isHomelessAdmin ? 'Individual reports only' : 'Animal reports only'}
             </span>
           ) : (
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -249,9 +264,14 @@ export default function Reports() {
               <Download className="h-3.5 w-3.5 mr-1.5" /> Export PDF
             </Button>
             {selected.size > 0 && (
-              <Button variant="destructive" size="sm" className="h-9 text-sm" onClick={moveToTrash}>
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Trash ({selected.size})
-              </Button>
+              <>
+                <Button variant="outline" size="sm" className="h-9 text-sm" onClick={archiveSelected}>
+                  <Archive className="h-3.5 w-3.5 mr-1.5" /> Archive ({selected.size})
+                </Button>
+                <Button variant="destructive" size="sm" className="h-9 text-sm" onClick={moveToTrash}>
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Trash ({selected.size})
+                </Button>
+              </>
             )}
           </div>
         </div>

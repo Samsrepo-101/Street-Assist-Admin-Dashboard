@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Megaphone, Trash2, Bell, LogOut, X, User } from 'lucide-react';
+import { LayoutDashboard, FileText, Megaphone, Trash2, Bell, LogOut, X, User, Archive } from 'lucide-react';
 import { useAuth } from '../../lib/AuthContext';
 import { subscribeToAdminNotifications } from '../../api/notifications.js';
 import { subscribeToReports } from '../../api/reports.js';
 import { subscribeToAnnouncements } from '../../api/announcement.js';
 import { collectionGroup, query, onSnapshot } from 'firebase/firestore';
 import { db } from '../../api/firebase.js';
-import { canAccessAnnouncement, canAccessReport, isMissingAnimalsAdminRole } from '../../lib/adminRoles.js';
+import { canAccessAnnouncement, canAccessReport, isHomelessAdminRole, isMissingAnimalsAdminRole, isMissingPersonAdminRole } from '../../lib/adminRoles.js';
 
 const navItems = [
   { path: '/',              label: 'Dashboard',    icon: LayoutDashboard },
   { path: '/reports',       label: 'All Reports',  icon: FileText },
   { path: '/announcements', label: 'Announcements',icon: Megaphone },
+  { path: '/archive',       label: 'Archive',      icon: Archive },
   { path: '/trash',         label: 'Trash',        icon: Trash2 },
   { path: '/notifications', label: 'Notifications',icon: Bell, badge: true },
 ];
@@ -44,9 +45,9 @@ export default function Sidebar({ open, onClose }) {
       setUnreadCount(notifs.filter(n => !n.isRead).length);
     });
 
-    // 2. Unread reports count (admin_seen: false, excluding deleted)
+    // 2. Unread reports count (admin_seen: false, excluding deleted/archived)
     const unsubReports = subscribeToReports(reports => {
-      setUnreadReportsCount(reports.filter(r => !r.admin_seen && !r.deleted_at && canAccessReport(r, adminRole)).length);
+      setUnreadReportsCount(reports.filter(r => !r.admin_seen && !r.deleted_at && !r.archived_at && canAccessReport(r, adminRole)).length);
     });
 
     // 3. Unread comments count across announcements
@@ -56,7 +57,7 @@ export default function Sidebar({ open, onClose }) {
     const calculateUnreadComments = (commentsList) => {
       const accessibleAnnouncementIds = new Set(
         activeAnnouncements
-          .filter(ann => canAccessAnnouncement(ann, adminRole))
+          .filter(ann => !ann.archived_at && canAccessAnnouncement(ann, adminRole))
           .map(ann => ann.id)
       );
       const unreadAnns = new Set();
@@ -107,7 +108,11 @@ export default function Sidebar({ open, onClose }) {
   }, [adminRole]);
 
   const visibleNavItems = isMissingAnimalsAdminRole(adminRole)
-    ? navItems.filter(item => item.path === '/reports' || item.path === '/announcements')
+    ? navItems.filter(item => item.path === '/reports' || item.path === '/announcements' || item.path === '/archive')
+    : isHomelessAdminRole(adminRole)
+    ? navItems.filter(item => item.path === '/reports' || item.path === '/archive')
+    : isMissingPersonAdminRole(adminRole)
+    ? navItems.filter(item => item.path === '/announcements' || item.path === '/archive')
     : navItems;
 
   return (

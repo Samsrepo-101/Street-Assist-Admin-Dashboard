@@ -2,7 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signIn } from '../api/auth.js';
 import { useAuth } from '../lib/AuthContext';
-import { ADMIN_ROLES, getStoredAdminRole, isMissingAnimalsAdminRole, storeSelectedAdminRole } from '../lib/adminRoles.js';
+import { ADMIN_ROLES, getDefaultRouteForAdminRole, getStoredAdminRole, storeSelectedAdminRole } from '../lib/adminRoles.js';
+
+const ROLE_OPTIONS = [
+  { value: ADMIN_ROLES.MAIN, label: 'Main Admin' },
+  { value: ADMIN_ROLES.HOMELESS, label: 'Homeless Admin' },
+  { value: ADMIN_ROLES.MISSING_ANIMALS, label: 'Missing Animals Admin' },
+  { value: ADMIN_ROLES.MISSING_PERSON, label: 'Missing Person Admin' },
+];
 
 /**
  * Maps Firebase auth error codes to human-readable messages.
@@ -47,7 +54,7 @@ export default function Login() {
   // If already authenticated as admin, redirect to dashboard
   useEffect(() => {
     if (!isLoadingAuth && currentUser && isAdmin) {
-      navigate(isMissingAnimalsAdminRole(adminRole) ? '/reports' : '/', { replace: true });
+      navigate(getDefaultRouteForAdminRole(adminRole), { replace: true });
     }
   }, [currentUser, isAdmin, adminRole, isLoadingAuth, navigate]);
 
@@ -63,7 +70,7 @@ export default function Login() {
 
       // signIn succeeded — onAuthStateChanged will fire in AuthContext,
       // which sets currentUser + isAdmin, and the useEffect above redirects.
-      navigate(isMissingAnimalsAdminRole(activeRole) ? '/reports' : '/', { replace: true });
+      navigate(getDefaultRouteForAdminRole(activeRole), { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -87,21 +94,29 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
           <div>
-            <label
-              htmlFor="admin-role"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <p className="block text-sm font-medium text-gray-700 mb-2">
               Admin role
-            </label>
-            <select
-              id="admin-role"
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-            >
-              <option value={ADMIN_ROLES.MAIN}>Main Admin</option>
-              <option value={ADMIN_ROLES.MISSING_ANIMALS}>Missing Animals Admin</option>
-            </select>
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" role="group" aria-label="Admin role">
+              {ROLE_OPTIONS.map((role) => {
+                const active = selectedRole === role.value;
+                return (
+                  <button
+                    key={role.value}
+                    type="button"
+                    onClick={() => setSelectedRole(role.value)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 ${
+                      active
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-800 shadow-sm'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-emerald-300 hover:bg-emerald-50/50'
+                    }`}
+                    aria-pressed={active}
+                  >
+                    {role.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Email field */}

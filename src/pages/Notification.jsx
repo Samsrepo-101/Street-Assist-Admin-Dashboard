@@ -213,12 +213,11 @@ export default function Notifications() {
       checkDone();
     });
     const unsubReports = subscribeToReports(data => {
-      // Only show non-deleted reports
-      setReports(data.filter(r => !r.deleted_at));
+      setReports(data.filter(r => !r.deleted_at && !r.archived_at));
       checkDone();
     });
     const unsubAnn = subscribeToAnnouncements(data => {
-      setAnnouncements(data);
+      setAnnouncements(data.filter(ann => !ann.archived_at));
       checkDone();
     });
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Trash2, MapPin, Calendar, Phone, User, Map, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MessageCircle, Trash2, MapPin, Calendar, Phone, User, Map, Edit, ChevronLeft, ChevronRight, Archive } from 'lucide-react';
 import MapViewModal from '../shared/MapViewModal';
 
 function ProofGallery({ images }) {
@@ -61,7 +61,7 @@ const statusColors = {
   'Case Closed':         'bg-slate-50 text-slate-700 border-slate-200',
 };
 
-export default function AnnouncementCard({ announcement, onViewComments, onUpdateStatus, onDelete, onEdit }) {
+export default function AnnouncementCard({ announcement, onViewComments, onUpdateStatus, onDelete, onArchive, onEdit }) {
   const [mapOpen, setMapOpen] = useState(false);
   const hasLocation = announcement.latitude && announcement.longitude;
 
@@ -165,6 +165,15 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
                   <Map className="h-3.5 w-3.5 mr-1" /> View Location
                 </Button>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onArchive(announcement)}
+                className="flex-1 min-w-[140px]"
+              >
+                <Archive className="h-3.5 w-3.5 mr-1" /> Archive
+              </Button>
               <Button
                 type="button"
                 variant="ghost"

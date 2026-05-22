@@ -8,6 +8,7 @@ import AdminLayout from '@/components/layout/AdminLayout';
 import Dashboard from '@/pages/Dashboard';
 import Reports from '@/pages/Reports';
 import Announcements from '@/pages/Announcements';
+import Archive from '@/pages/Archive';
 import Trash from '@/pages/Trash';
 import Notifications from '@/pages/Notification';
 import Login from '@/pages/Login';
@@ -43,6 +44,7 @@ function App() {
                 <Route path="/"              element={<Dashboard />} />
                 <Route path="/reports"       element={<Reports />} />
                 <Route path="/announcements" element={<Announcements />} />
+                <Route path="/archive"       element={<Archive />} />
                 <Route path="/trash"         element={<Trash />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/profile"       element={<Profile />} />

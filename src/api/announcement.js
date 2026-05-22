@@ -68,6 +68,7 @@ export function subscribeToAnnouncements(callback) {
         evidenceUrl: document.data().evidenceUrl ?? '',
         evidenceUrls: document.data().evidenceUrls ?? (document.data().evidenceUrl ? [document.data().evidenceUrl] : []),
         status: mapRawAnnouncementStatus(document.data().status ?? ''),
+        archived_at: document.data().archived_at ?? null,
       }));
 
       callback(announcements);
@@ -183,6 +184,18 @@ export async function postComment(announcementId, { userId, text }) {
  */
 export async function deleteAnnouncement(announcementId) {
   await deleteDoc(doc(db, 'announcements', announcementId));
+}
+
+export async function archiveAnnouncement(announcementId) {
+  await updateDoc(doc(db, 'announcements', announcementId), {
+    archived_at: new Date().toISOString(),
+  });
+}
+
+export async function restoreArchivedAnnouncement(announcementId) {
+  await updateDoc(doc(db, 'announcements', announcementId), {
+    archived_at: null,
+  });
 }
 
 /**

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { subscribeToAnnouncements, deleteAnnouncement, updateAnnouncementStatus } from '../api/announcement.js';
+import { subscribeToAnnouncements, deleteAnnouncement, archiveAnnouncement, updateAnnouncementStatus } from '../api/announcement.js';
 import { uploadImageToCloudinary } from '../api/cloudinary.js';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,7 +14,7 @@ import AnnouncementCard from '../components/announcement/AnnouncementCard';
 import AddAnnouncementDialog from '../components/announcement/AddAnnouncementDialog';
 import CommentsDialog from '../components/announcement/CommentsDialog';
 import { useAuth } from '../lib/AuthContext';
-import { canAccessAnnouncement, isMissingAnimalsAdminRole } from '../lib/adminRoles.js';
+import { canAccessAnnouncement, isMissingAnimalsAdminRole, isMissingPersonAdminRole, isScopedAnnouncementAdminRole } from '../lib/adminRoles.js';
 
 function ProofGallery({ images }) {
   const [current, setCurrent] = useState(0);
@@ -74,6 +74,12 @@ export default function Announcements() {
   const fileInputRef = useRef(null);
   const { adminRole } = useAuth();
   const isMissingAnimalsAdmin = isMissingAnimalsAdminRole(adminRole);
+  const isMissingPersonAdmin = isMissingPersonAdminRole(adminRole);
+  const isScopedAnnouncementAdmin = isScopedAnnouncementAdminRole(adminRole);
+  const forcedAnnouncementCategory =
+    isMissingAnimalsAdmin ? 'Missing Animal' :
+    isMissingPersonAdmin ? 'Missing Person' :
+    null;
 
   useEffect(() => {
     const urls = evidenceFiles.map(file => URL.createObjectURL(file));
@@ -125,6 +131,15 @@ export default function Announcements() {
       toast.success('Announcement deleted');
     } catch (err) {
       toast.error('Failed to delete announcement');
+    }
+  };
+
+  const handleArchive = async (ann) => {
+    try {
+      await archiveAnnouncement(ann.id);
+      toast.success('Announcement archived');
+    } catch (err) {
+      toast.error('Failed to archive announcement');
     }
   };
 
@@ -214,6 +229,7 @@ export default function Announcements() {
   const filtered = useMemo(() => {
     // 1. Filter
     let result = announcements.filter(ann => {
+      if (ann.archived_at) return false;
       if (!canAccessAnnouncement(ann, adminRole)) return false;
 
       const matchSearch = !search ||
@@ -222,7 +238,7 @@ export default function Announcements() {
         ann.subtitle?.toLowerCase().includes(search.toLowerCase());
 
       const itemCategory = ann.category || 'Missing Person';
-      const matchCategory = isMissingAnimalsAdmin || categoryFilter === 'All Categories' || itemCategory === categoryFilter;
+      const matchCategory = isScopedAnnouncementAdmin || categoryFilter === 'All Categories' || itemCategory === categoryFilter;
 
       let matchDate = true;
       if (dateFilter === 'Today' || dateFilter === 'This Week' || dateFilter === 'This Month') {
@@ -259,7 +275,7 @@ export default function Announcements() {
     });
 
     return result;
-  }, [announcements, search, categoryFilter, dateFilter, statusFilter, adminRole, isMissingAnimalsAdmin]);
+  }, [announcements, search, categoryFilter, dateFilter, statusFilter, adminRole, isScopedAnnouncementAdmin]);
 
   if (isLoading) {
     return <div className="space-y-4 w-full">{[1,2].map(i => <Skeleton key={i} className="h-48 rounded-2xl" />)}</div>;
@@ -288,9 +304,9 @@ export default function Announcements() {
               className="pl-8 h-9 text-sm bg-muted/40 border-0 focus-visible:ring-1"
             />
           </div>
-          {isMissingAnimalsAdmin ? (
+          {isScopedAnnouncementAdmin ? (
             <span className="h-9 inline-flex items-center rounded-md bg-emerald-50 px-3 text-sm font-semibold text-emerald-700">
-              Missing animal only
+              {isMissingPersonAdmin ? 'Missing person only' : 'Missing animal only'}
             </span>
           ) : (
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -346,14 +362,15 @@ export default function Announcements() {
               onViewComments={setCommentsTarget}
               onUpdateStatus={(a) => { setStatusTarget(a); setNewStatus(a.status || 'Search Ongoing'); }}
               onDelete={handleDelete}
+              onArchive={handleArchive}
               onEdit={setEditTarget}
             />
           ))
         )}
       </div>
 
-      <AddAnnouncementDialog open={showAdd} onClose={() => setShowAdd(false)} forcedCategory={isMissingAnimalsAdmin ? 'Missing Animal' : null} />
-      <AddAnnouncementDialog open={!!editTarget} announcement={editTarget} onClose={() => setEditTarget(null)} forcedCategory={isMissingAnimalsAdmin ? 'Missing Animal' : null} />
+      <AddAnnouncementDialog open={showAdd} onClose={() => setShowAdd(false)} forcedCategory={forcedAnnouncementCategory} />
+      <AddAnnouncementDialog open={!!editTarget} announcement={editTarget} onClose={() => setEditTarget(null)} forcedCategory={forcedAnnouncementCategory} />
       <CommentsDialog announcement={commentsTarget} open={!!commentsTarget} onClose={() => setCommentsTarget(null)} />
 
       <Dialog open={!!statusTarget} onOpenChange={() => setStatusTarget(null)}>

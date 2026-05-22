@@ -24,10 +24,12 @@ export default function Dashboard() {
     };
   }, []);
 
-  const total = reports.filter(r => !r.deleted_at).length;
-  const pending = reports.filter(r => r.status === 'Pending' && !r.deleted_at).length;
-  const onProgress = reports.filter(r => (r.status === 'In Progress' || r.status === 'Verified') && !r.deleted_at).length;
-  const resolved = reports.filter(r => r.status === 'Resolved' && !r.deleted_at).length;
+  const activeReports = reports.filter(r => !r.deleted_at && !r.archived_at);
+  const activeAnnouncements = announcements.filter(ann => !ann.archived_at);
+  const total = activeReports.length;
+  const pending = activeReports.filter(r => r.status === 'Pending').length;
+  const onProgress = activeReports.filter(r => r.status === 'In Progress' || r.status === 'Verified').length;
+  const resolved = activeReports.filter(r => r.status === 'Resolved').length;
 
   if (reportsLoading) {
     return (
@@ -96,7 +98,7 @@ export default function Dashboard() {
       {/* Content grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">
-          <RecentReportsList reports={reports} />
+          <RecentReportsList reports={activeReports} />
         </div>
 
         {/* Quick stats sidebar */}
@@ -133,7 +135,7 @@ export default function Dashboard() {
               <Megaphone className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="space-y-3">
-              {announcements.slice(0, 3).map(ann => (
+              {activeAnnouncements.slice(0, 3).map(ann => (
                 <div key={ann.id} className="flex items-start gap-3">
                   <div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" />
                   <div>
@@ -142,7 +144,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
-              {announcements.length === 0 && (
+              {activeAnnouncements.length === 0 && (
                 <p className="text-xs text-muted-foreground">No announcements yet</p>
               )}
             </div>
