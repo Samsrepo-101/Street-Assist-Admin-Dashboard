@@ -80,6 +80,8 @@ function mapReport(docSnap) {
     // Incident details
     description:          d.description          ?? '',
     assistanceDescription:d.assistanceDescription ?? '',
+    role:                 d.role                 ?? '',
+    reportRole:           d.reportRole           ?? d.report_role ?? '',
     reportType:           d.reportType           ?? d.category ?? '',
     category:             d.reportType           ?? d.category ?? '',
     approximateAge:       d.approximateAge       ?? '',

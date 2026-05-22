@@ -6,11 +6,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { subscribeToReports } from '../api/reports.js';
 import { subscribeToAnnouncements } from '../api/announcement.js';
+import { useAuth } from '../lib/AuthContext';
+import { compareReportsByRole, getReportRole, getReportRoleByValue } from '../lib/reportRoles.js';
 
 export default function Dashboard() {
   const [reports, setReports] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(true);
+  const { selectedReportRole } = useAuth();
 
   useEffect(() => {
     const unsubReports = subscribeToReports((data) => {
@@ -24,10 +27,14 @@ export default function Dashboard() {
     };
   }, []);
 
-  const total = reports.filter(r => !r.deleted_at).length;
-  const pending = reports.filter(r => r.status === 'Pending' && !r.deleted_at).length;
-  const onProgress = reports.filter(r => (r.status === 'In Progress' || r.status === 'Verified') && !r.deleted_at).length;
-  const resolved = reports.filter(r => r.status === 'Resolved' && !r.deleted_at).length;
+  const activeRole = getReportRoleByValue(selectedReportRole);
+  const activeReports = reports
+    .filter(r => !r.deleted_at && getReportRole(r).value === selectedReportRole)
+    .sort(compareReportsByRole);
+  const total = activeReports.length;
+  const pending = activeReports.filter(r => r.status === 'Pending').length;
+  const onProgress = activeReports.filter(r => r.status === 'In Progress' || r.status === 'Verified').length;
+  const resolved = activeReports.filter(r => r.status === 'Resolved').length;
 
   if (reportsLoading) {
     return (
@@ -46,8 +53,8 @@ export default function Dashboard() {
       {/* Welcome header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Good morning, Admin 👋</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{format(new Date(), 'EEEE, MMMM dd, yyyy')} · Camarines Norte</p>
+          <h1 className="text-xl font-bold text-foreground">Good morning, Admin</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{format(new Date(), 'EEEE, MMMM dd, yyyy')} | {activeRole.label} queue</p>
         </div>
         {pending > 0 && (
           <div className="hidden sm:flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-2 rounded-xl">
@@ -96,7 +103,7 @@ export default function Dashboard() {
       {/* Content grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">
-          <RecentReportsList reports={reports} />
+          <RecentReportsList reports={activeReports} />
         </div>
 
         {/* Quick stats sidebar */}
