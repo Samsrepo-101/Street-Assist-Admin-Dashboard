@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react';
 import { createAnnouncement, updateAnnouncement } from '../../api/announcement.js';
-import { uploadImageToCloudinary } from '../../api/cloudinary.js';
+import { uploadImageToCloudinary, uploadMediaToCloudinary } from '../../api/cloudinary.js';
 import MapPickerField from '../shared/MapPickerField';
+import ProofMediaPreview from '../shared/ProofMediaPreview';
+import { PROOF_MEDIA_ACCEPT, filterValidProofFiles, getProofMediaLabel, isVideoFile } from '../../utils/proofMedia.js';
 
 const EMPTY_FORM = {
   title: '', category: 'Missing Person', subtitle: '', name: '', age: '', sex: 'Unknown',
@@ -93,22 +95,11 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleProofChange = (e) => {
+  const handleProofChange = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
-    const validFiles = files.filter(file => {
-      if (!allowed.includes(file.type)) {
-        toast.error(`${file.name} is not supported (JPG/PNG only)`);
-        return false;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`${file.name} is larger than 5MB`);
-        return false;
-      }
-      return true;
-    });
+    const validFiles = await filterValidProofFiles(files, (message) => toast.error(message));
 
     setProofFiles(prev => [...prev, ...validFiles]);
     e.target.value = '';
@@ -149,7 +140,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
       setUploading(true);
       try {
         for (const file of proofFiles) {
-          const url = await uploadImageToCloudinary(file);
+          const url = await uploadMediaToCloudinary(file);
           uploadedUrls.push(url);
         }
       } catch (err) {
@@ -375,7 +366,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
           {announcement && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Proof / Evidence Images <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+                <Label>Proof / Evidence <span className="text-muted-foreground font-normal text-xs">(images or video up to 30 sec)</span></Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -384,14 +375,14 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
                   className="h-8 text-xs font-semibold"
                 >
                   <ImageIcon className="h-3.5 w-3.5 mr-1" />
-                  Select Images
+                  Select Proof
                 </Button>
               </div>
               <input
                 ref={proofInputRef}
                 type="file"
                 multiple
-                accept="image/jpeg,image/jpg,image/png"
+                accept={PROOF_MEDIA_ACCEPT}
                 className="hidden"
                 onChange={handleProofChange}
               />
@@ -399,7 +390,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
                 {existingProofImages.length > 0 && (
                   <div className="mb-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-foreground">{existingProofImages.length} existing image(s)</span>
+                      <span className="text-xs font-bold text-foreground">{existingProofImages.length} existing {getProofMediaLabel(existingProofImages.length)}</span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -413,7 +404,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
                     <div className="grid grid-cols-3 gap-2">
                       {existingProofImages.map((src, i) => (
                         <div key={`existing-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
-                          <img src={src} alt={`Existing proof ${i+1}`} className="h-20 w-full object-cover" />
+                          <ProofMediaPreview src={src} alt={`Existing proof ${i+1}`} />
                           <button
                             type="button"
                             onClick={() => setExistingProofImages(prev => prev.filter((_, idx) => idx !== i))}
@@ -430,7 +421,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
                 {proofFiles.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-foreground">{proofFiles.length} new image(s) selected</span>
+                      <span className="text-xs font-bold text-foreground">{proofFiles.length} new {getProofMediaLabel(proofFiles.length)} selected</span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -444,7 +435,11 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
                     <div className="grid grid-cols-3 gap-2">
                       {proofPreviews.map((src, i) => (
                         <div key={`preview-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
-                          <img src={src} alt={`New proof ${i+1}`} className="h-20 w-full object-cover" />
+                          {isVideoFile(proofFiles[i]) ? (
+                            <video src={src} className="h-20 w-full object-cover" controls muted preload="metadata" />
+                          ) : (
+                            <img src={src} alt={`New proof ${i+1}`} className="h-20 w-full object-cover" />
+                          )}
                           <button
                             type="button"
                             onClick={() => {
@@ -463,7 +458,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
                 )}
 
                 {existingProofImages.length === 0 && proofFiles.length === 0 && (
-                  <p className="text-xs text-center py-4 text-muted-foreground">No proof images selected yet.</p>
+                  <p className="text-xs text-center py-4 text-muted-foreground">No proof media selected yet.</p>
                 )}
               </div>
             </div>

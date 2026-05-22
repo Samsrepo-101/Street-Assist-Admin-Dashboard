@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Trash2, MapPin, Calendar, Phone, User, Map, Edit, ChevronLeft, ChevronRight, Archive } from 'lucide-react';
 import MapViewModal from '../shared/MapViewModal';
+import ProofMediaPreview from '../shared/ProofMediaPreview';
 
 function ProofGallery({ images }) {
   const [current, setCurrent] = useState(0);
@@ -22,9 +23,9 @@ function ProofGallery({ images }) {
   return (
     <div className="space-y-2">
       <div className="relative rounded-2xl overflow-hidden border border-border bg-slate-50">
-        <img
+        <ProofMediaPreview
           src={images[current]}
-          alt={`Proof image ${current + 1}`}
+          alt={`Proof media ${current + 1}`}
           className="w-full h-44 object-cover"
         />
         {images.length > 1 && (
@@ -41,7 +42,7 @@ function ProofGallery({ images }) {
           </>
         )}
         <div className="px-3 py-2 text-[11px] text-slate-600 bg-white/80">
-          Proof image{images.length !== 1 ? 's' : ''}
+          Proof media
         </div>
       </div>
     </div>

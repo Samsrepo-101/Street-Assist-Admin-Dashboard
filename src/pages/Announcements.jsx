@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { subscribeToAnnouncements, deleteAnnouncement, archiveAnnouncement, updateAnnouncementStatus } from '../api/announcement.js';
-import { uploadImageToCloudinary } from '../api/cloudinary.js';
+import { uploadMediaToCloudinary } from '../api/cloudinary.js';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -15,6 +15,8 @@ import AddAnnouncementDialog from '../components/announcement/AddAnnouncementDia
 import CommentsDialog from '../components/announcement/CommentsDialog';
 import { useAuth } from '../lib/AuthContext';
 import { canAccessAnnouncement, isMissingAnimalsAdminRole, isMissingPersonAdminRole, isScopedAnnouncementAdminRole } from '../lib/adminRoles.js';
+import ProofMediaPreview from '../components/shared/ProofMediaPreview';
+import { PROOF_MEDIA_ACCEPT, filterValidProofFiles, getProofMediaLabel, isVideoFile } from '../utils/proofMedia.js';
 
 function ProofGallery({ images }) {
   const [current, setCurrent] = useState(0);
@@ -32,9 +34,9 @@ function ProofGallery({ images }) {
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-border bg-slate-50">
-      <img
+      <ProofMediaPreview
         src={images[current]}
-        alt={`Proof image ${current + 1}`}
+        alt={`Proof media ${current + 1}`}
         className="w-full h-44 object-cover"
       />
       {images.length > 1 && (
@@ -51,7 +53,7 @@ function ProofGallery({ images }) {
         </>
       )}
       <div className="px-3 py-2 text-[11px] text-slate-600 bg-white/80">
-        Proof image{images.length !== 1 ? 's' : ''}
+        Proof media
       </div>
     </div>
   );
@@ -143,22 +145,11 @@ export default function Announcements() {
     }
   };
 
-  const handleEvidenceSelected = (event) => {
+  const handleEvidenceSelected = async (event) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
-    const validFiles = files.filter(file => {
-      if (!allowed.includes(file.type)) {
-        toast.error(`${file.name} is not supported (JPG/PNG only)`);
-        return false;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`${file.name} is larger than 5MB`);
-        return false;
-      }
-      return true;
-    });
+    const validFiles = await filterValidProofFiles(files, (message) => toast.error(message));
 
     setEvidenceFiles(prev => [...prev, ...validFiles]);
     setIsReplacingEvidence(true);
@@ -189,7 +180,7 @@ export default function Announcements() {
       evidenceFiles.length === 0 &&
       (existingEvidenceImages.length === 0 || clearEvidence)
     ) {
-      toast.error('Please select a proof image before marking this announcement resolved or closed.');
+      toast.error('Please select proof media before marking this announcement resolved or closed.');
       return;
     }
 
@@ -197,14 +188,14 @@ export default function Announcements() {
     if (evidenceFiles.length > 0) {
       setUploadingEvidence(true);
       try {
-        toast.info('Uploading evidence image(s)...');
+        toast.info('Uploading evidence media...');
         for (const file of evidenceFiles) {
-          const url = await uploadImageToCloudinary(file);
+          const url = await uploadMediaToCloudinary(file);
           uploadedUrls.push(url);
         }
       } catch (err) {
         console.error('Evidence upload failed:', err);
-        toast.error('Failed to upload evidence image(s)');
+        toast.error('Failed to upload evidence media');
         setUploadingEvidence(false);
         return;
       }
@@ -419,7 +410,7 @@ export default function Announcements() {
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/jpeg,image/jpg,image/png"
+            accept={PROOF_MEDIA_ACCEPT}
             className="hidden"
             onChange={handleEvidenceSelected}
           />
@@ -430,7 +421,7 @@ export default function Announcements() {
                 <div>
                   <p className="font-semibold text-xs">Evidence required</p>
                   <p className="text-[10px] text-muted-foreground">
-                    Please attach proof image(s) for this announcement.
+                    Please attach proof media for this announcement. Videos must be 30 seconds or less.
                   </p>
                 </div>
                 <Button
@@ -440,14 +431,14 @@ export default function Announcements() {
                   onClick={() => fileInputRef.current?.click()}
                   className="h-8 text-xs font-semibold"
                 >
-                  Select Images
+                  Select Proof
                 </Button>
               </div>
 
               {existingEvidenceImages.length > 0 && (
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-foreground">{existingEvidenceImages.length} existing proof image(s)</span>
+                    <span className="text-xs font-bold text-foreground">{existingEvidenceImages.length} existing {getProofMediaLabel(existingEvidenceImages.length)}</span>
                     <Button
                       type="button"
                       variant="ghost"
@@ -464,7 +455,7 @@ export default function Announcements() {
                   <div className="grid grid-cols-3 gap-2">
                     {existingEvidenceImages.map((src, i) => (
                       <div key={`existing-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
-                        <img src={src} alt={`Existing proof ${i+1}`} className="h-16 w-full object-cover" />
+                        <ProofMediaPreview src={src} alt={`Existing proof ${i+1}`} className="h-16 w-full object-cover" />
                         <button
                           type="button"
                           onClick={() => {
@@ -484,7 +475,7 @@ export default function Announcements() {
               {evidenceFiles.length > 0 && (
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-foreground">{evidenceFiles.length} new image(s) selected</span>
+                    <span className="text-xs font-bold text-foreground">{evidenceFiles.length} new {getProofMediaLabel(evidenceFiles.length)} selected</span>
                     <Button
                       type="button"
                       variant="ghost"
@@ -498,7 +489,11 @@ export default function Announcements() {
                   <div className="grid grid-cols-3 gap-2">
                     {evidencePreviews.map((src, i) => (
                       <div key={`preview-${i}`} className="relative rounded-md overflow-hidden border border-border bg-white">
-                        <img src={src} alt={`New proof ${i+1}`} className="h-16 w-full object-cover" />
+                        {isVideoFile(evidenceFiles[i]) ? (
+                          <video src={src} className="h-16 w-full object-cover" controls muted preload="metadata" />
+                        ) : (
+                          <img src={src} alt={`New proof ${i+1}`} className="h-16 w-full object-cover" />
+                        )}
                         <button
                           type="button"
                           onClick={() => {
@@ -517,7 +512,7 @@ export default function Announcements() {
               )}
 
               {existingEvidenceImages.length === 0 && evidenceFiles.length === 0 && (
-                <p className="mt-2 text-xs text-muted-foreground text-center py-2">No proof images selected yet.</p>
+                <p className="mt-2 text-xs text-muted-foreground text-center py-2">No proof media selected yet.</p>
               )}
 
               {uploadingEvidence && (

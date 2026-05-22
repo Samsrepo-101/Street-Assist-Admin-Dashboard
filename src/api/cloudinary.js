@@ -1,5 +1,5 @@
 /**
- * Cloudinary image upload helper.
+ * Cloudinary upload helper.
  * Uses the unsigned upload API — no server required.
  *
  * Required .env variables:
@@ -17,7 +17,7 @@ const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
  * @param {function} [onProgress] - Optional callback(percent: number) for upload progress.
  * @returns {Promise<string>} The secure Cloudinary URL of the uploaded image.
  */
-export async function uploadImageToCloudinary(file, onProgress) {
+export async function uploadMediaToCloudinary(file, onProgress) {
   if (!CLOUD_NAME || !UPLOAD_PRESET) {
     throw new Error(
       'Missing Cloudinary config. Add VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET to your .env file.'
@@ -51,7 +51,11 @@ export async function uploadImageToCloudinary(file, onProgress) {
       reject(new Error('Cloudinary upload failed: network error'));
     });
 
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`);
     xhr.send(formData);
   });
+}
+
+export async function uploadImageToCloudinary(file, onProgress) {
+  return uploadMediaToCloudinary(file, onProgress);
 }

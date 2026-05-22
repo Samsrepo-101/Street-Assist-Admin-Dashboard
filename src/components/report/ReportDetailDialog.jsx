@@ -12,7 +12,9 @@ import { exportReportPDF } from '../../utils/exportReportPDF.js';
 import { toast } from 'sonner';
 import MapViewModal from '../shared/MapViewModal';
 import { Input } from '@/components/ui/input';
-import { uploadImageToCloudinary } from '../../api/cloudinary.js';
+import { uploadMediaToCloudinary } from '../../api/cloudinary.js';
+import ProofMediaPreview from '../shared/ProofMediaPreview';
+import { PROOF_MEDIA_ACCEPT, filterValidProofFiles, getProofMediaLabel, isVideoFile } from '../../utils/proofMedia.js';
 
 // ---------------------------------------------------------------------------
 // Attachment gallery — handles single photoUrl or array
@@ -115,17 +117,26 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
-    if ((newStatus === 'Resolved' || newStatus === 'Closed') && status !== newStatus) {
+    if (newStatus !== 'Closed' && r.status !== 'Closed') {
+      setProofFiles([]);
+    }
+    if (newStatus === 'Closed' && status !== newStatus) {
       if (fileInputRef.current) {
         fileInputRef.current.click();
       }
     }
   };
 
-  const handleProofSelection = (event) => {
+  const handleProofSelection = async (event) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
-    setProofFiles((prev) => [...prev, ...files]);
+    if (status !== 'Closed' && r.status !== 'Closed') {
+      toast.error('Proof can only be added when the report is closed.');
+      event.target.value = '';
+      return;
+    }
+    const validFiles = await filterValidProofFiles(files, (message) => toast.error(message));
+    setProofFiles((prev) => [...prev, ...validFiles]);
     event.target.value = '';
   };
 
@@ -133,6 +144,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
   const r = enrichedReport;
   const isClosed = r.status === 'Closed';
+  const canManageProof = isClosed || status === 'Closed';
   const statusCfg = getStatusConfig(r.status);
   const hasLocation = r.latitude != null && r.longitude != null;
 
@@ -142,9 +154,13 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     try {
       let proofUrls = [];
       if (proofFiles.length > 0) {
-        toast.info(`Uploading ${proofFiles.length} proof image(s)...`);
+        if (!canManageProof) {
+          toast.error('Proof can only be added when the report is closed.');
+          return;
+        }
+        toast.info(`Uploading ${proofFiles.length} proof media item(s)...`);
         for (const file of proofFiles) {
-          const url = await uploadImageToCloudinary(file);
+          const url = await uploadMediaToCloudinary(file);
           proofUrls.push(url);
         }
       }
@@ -176,9 +192,13 @@ export default function ReportDetailDialog({ report, open, onClose }) {
     try {
       let proofUrls = [];
       if (proofFiles.length > 0) {
-        toast.info(`Uploading ${proofFiles.length} proof image(s)...`);
+        if (!canManageProof) {
+          toast.error('Proof can only be added when the report is closed.');
+          return;
+        }
+        toast.info(`Uploading ${proofFiles.length} proof media item(s)...`);
         for (const file of proofFiles) {
-          const url = await uploadImageToCloudinary(file);
+          const url = await uploadMediaToCloudinary(file);
           proofUrls.push(url);
         }
       }
@@ -260,7 +280,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/*"
+                accept={PROOF_MEDIA_ACCEPT}
                 className="hidden"
                 onChange={handleProofSelection}
               />
@@ -468,7 +488,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                             <div className="flex gap-2 mt-2 overflow-x-auto pb-1 pl-0.5">
                               {upd.proofUrls.map((url, i) => (
                                 <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                                  <img src={url} alt="Proof" className="h-10 w-10 object-cover rounded border border-border" />
+                                  <ProofMediaPreview src={url} alt="Proof" className="h-10 w-10 object-cover rounded border border-border" />
                                 </a>
                               ))}
                             </div>
@@ -480,31 +500,47 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 </div>
               )}
 
-              {/* Proof / Evidence Images Section */}
+              {/* Proof / Evidence Section */}
               <div className="bg-slate-50 border border-border rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                  <span className="text-xs font-bold text-foreground uppercase tracking-wide">Proof / Evidence Images</span>
+                  <div>
+                    <span className="text-xs font-bold text-foreground uppercase tracking-wide">Proof / Evidence</span>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Images or videos up to 30 seconds</p>
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => {
+                      if (!canManageProof) {
+                        toast.error('Set the report status to Closed before adding proof.');
+                        return;
+                      }
+                      fileInputRef.current?.click();
+                    }}
+                    disabled={!canManageProof}
                     className="h-8 text-xs font-semibold bg-white"
                   >
-                    Select images
+                    Select proof
                   </Button>
                 </div>
 
                 <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
+                  {!canManageProof && (
+                    <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 border border-amber-200">
+                      Proof can be added only when the report is closed.
+                    </p>
+                  )}
                   {existingProofImages.length > 0 && (
                     <div className="mb-3">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-foreground">{existingProofImages.length} existing image(s)</span>
+                        <span className="text-xs font-bold text-foreground">{existingProofImages.length} existing {getProofMediaLabel(existingProofImages.length)}</span>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => setExistingProofImages([])}
+                          disabled={!canManageProof}
                           className="h-6 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10 px-2"
                         >
                           Clear existing
@@ -513,10 +549,11 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                       <div className="grid grid-cols-3 gap-2">
                         {existingProofImages.map((src, i) => (
                           <div key={`existing-${i}`} className="relative overflow-hidden border border-border bg-white rounded-md">
-                            <img src={src} alt={`Existing proof ${i + 1}`} className="h-20 w-full object-cover" />
+                            <ProofMediaPreview src={src} alt={`Existing proof ${i + 1}`} />
                             <button
                               type="button"
                               onClick={() => setExistingProofImages(prev => prev.filter((_, idx) => idx !== i))}
+                              disabled={!canManageProof}
                               className="absolute top-1 right-1 bg-black/60 hover:bg-black/85 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] transition-colors"
                             >
                               <X className="h-3.5 w-3.5" />
@@ -530,7 +567,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                   {proofFiles.length > 0 && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-foreground">{proofFiles.length} new image(s) selected</span>
+                        <span className="text-xs font-bold text-foreground">{proofFiles.length} new {getProofMediaLabel(proofFiles.length)} selected</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -544,7 +581,11 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                       <div className="grid grid-cols-3 gap-2">
                         {proofPreviews.map((src, i) => (
                           <div key={`preview-${i}`} className="relative overflow-hidden border border-border bg-white rounded-md">
-                            <img src={src} alt={`Proof ${i + 1}`} className="h-20 w-full object-cover" />
+                            {isVideoFile(proofFiles[i]) ? (
+                              <video src={src} className="h-20 w-full object-cover" controls muted preload="metadata" />
+                            ) : (
+                              <img src={src} alt={`Proof ${i + 1}`} className="h-20 w-full object-cover" />
+                            )}
                             <button
                               type="button"
                               onClick={() => {
@@ -563,7 +604,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                   )}
 
                   {existingProofImages.length === 0 && proofFiles.length === 0 && (
-                    <p className="text-xs text-center py-4 text-muted-foreground">No proof images selected yet.</p>
+                    <p className="text-xs text-center py-4 text-muted-foreground">No proof media selected yet.</p>
                   )}
                 </div>
               </div>
