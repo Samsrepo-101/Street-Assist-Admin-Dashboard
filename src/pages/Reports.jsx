@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { subscribeToReports, moveReportToTrash, getStatusConfig, STATUS_CONFIG } from '../api/reports.js';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, MapPin, Clock, Trash2, Download, User, FileText, ChevronRight } from 'lucide-react';
@@ -11,8 +10,6 @@ import ReportDetailDialog from '../components/report/ReportDetailDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
-import { useAuth } from '../lib/AuthContext';
-import { REPORT_ROLES, compareReportsByRole, getReportRole } from '../lib/reportRoles.js';
 
 const CAM_NORTE_TOWNS = [
   'All Towns', 'Basud', 'Capalonga', 'Daet', 'Jose Panganiban', 'Labo',
@@ -26,11 +23,11 @@ const statusConfig = STATUS_CONFIG;
 export default function Reports() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
   const [townFilter, setTownFilter] = useState('All Towns');
   const [timeFilter, setTimeFilter] = useState('All Dates');
   const [selectedReport, setSelectedReport] = useState(null);
   const [selected, setSelected] = useState(new Set());
-  const { selectedReportRole, setSelectedReportRole } = useAuth();
 
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +64,8 @@ export default function Reports() {
         r.reportType?.toLowerCase().includes(search.toLowerCase());
 
       const matchStatus = statusFilter === 'All' || r.status === statusFilter;
-      const matchRole = getReportRole(r).value === selectedReportRole;
+      const reportCategory = r.category || "Individual";
+      const matchCategory = categoryFilter === 'All' || reportCategory === categoryFilter;
       const matchTown = townFilter === 'All Towns' ||
         (r.locationAddress || r.location_address)?.toLowerCase().includes(townFilter.toLowerCase());
 
@@ -79,9 +77,9 @@ export default function Reports() {
         timeFilter === 'Last 7 days'   ? isAfter(created, subDays(now, 7)) :
         timeFilter === 'Last 30 days'  ? isAfter(created, subDays(now, 30)) : true;
 
-      return matchSearch && matchStatus && matchRole && matchTown && matchTime;
-    }).sort(compareReportsByRole);
-  }, [reports, search, statusFilter, selectedReportRole, townFilter, timeFilter]);
+      return matchSearch && matchStatus && matchCategory && matchTown && matchTime;
+    });
+  }, [reports, search, statusFilter, categoryFilter, townFilter, timeFilter]);
 
   const toggleSelect = (id) => {
     setSelected(prev => {
@@ -161,15 +159,9 @@ export default function Reports() {
     return <div className="space-y-3 w-full">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}</div>;
   }
 
-  const activeRoleReports = reports.filter(r => !r.deleted_at && getReportRole(r).value === selectedReportRole);
-  const pendingCount = activeRoleReports.filter(r => r.status === 'Pending').length;
-  const onProgressCount = activeRoleReports.filter(r => r.status === 'In Progress').length;
-  const newCount = activeRoleReports.filter(r => !r.admin_seen).length;
-  const activeRole = REPORT_ROLES.find(role => role.value === selectedReportRole);
-  const roleCounts = REPORT_ROLES.map(role => ({
-    ...role,
-    count: reports.filter(r => !r.deleted_at && getReportRole(r).value === role.value).length,
-  }));
+  const pendingCount = reports.filter(r => r.status === 'Pending' && !r.deleted_at).length;
+  const onProgressCount = reports.filter(r => r.status === 'In Progress' && !r.deleted_at).length;
+  const newCount = reports.filter(r => !r.admin_seen && !r.deleted_at).length;
 
   return (
     <div className="space-y-5 w-full">
@@ -177,7 +169,7 @@ export default function Reports() {
       {/* Summary pills */}
       <div className="flex flex-wrap gap-2">
         {[
-          { label: activeRole?.label || 'Total', value: filtered.length, color: 'bg-primary/10 text-primary' },
+          { label: 'Total', value: reports.filter(r => !r.deleted_at).length, color: 'bg-primary/10 text-primary' },
           { label: 'Pending', value: pendingCount, color: 'bg-amber-50 text-amber-700' },
           { label: 'On Progress', value: onProgressCount, color: 'bg-teal-50 text-teal-700' },
           { label: 'Unseen', value: newCount, color: 'bg-red-50 text-red-700' },
@@ -200,16 +192,14 @@ export default function Reports() {
               className="pl-8 h-9 text-sm bg-muted/40 border-0 focus-visible:ring-1"
             />
           </div>
-          <Select value={selectedReportRole} onValueChange={setSelectedReportRole}>
-            <SelectTrigger className="w-44 h-9 text-sm bg-muted/40 border-0">
-              <SelectValue placeholder="Admin queue" />
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-40 h-9 text-sm bg-muted/40 border-0">
+              <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              {roleCounts.map(role => (
-                <SelectItem key={role.value} value={role.value}>
-                  {role.label} ({role.count})
-                </SelectItem>
-              ))}
+              <SelectItem value="All">All Categories</SelectItem>
+              <SelectItem value="Individual">Individual</SelectItem>
+              <SelectItem value="Animal">Animal</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -300,9 +290,6 @@ export default function Reports() {
                       <span className="text-xs font-mono font-bold text-primary">
                         {report.report_id || report.id}
                       </span>
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                        {getReportRole(report).label}
-                      </Badge>
                       {!report.admin_seen && (
                         <span className="text-[9px] font-bold bg-destructive text-white px-1.5 py-0.5 rounded-full tracking-widest">NEW</span>
                       )}
