@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { signIn } from '../api/auth.js';
 import { useAuth } from '../lib/AuthContext';
 import { REPORT_ROLES, isValidReportRoleCode } from '../lib/reportRoles.js';
+import { isHardcodedAdminCredentials } from '../lib/hardcodedAdmin.js';
 import { HeartHandshake, PawPrint, Search } from 'lucide-react';
 
 const roleIcons = {
@@ -49,7 +50,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const { currentUser, isAdmin, isLoadingAuth, selectedReportRole, setSelectedReportRole } = useAuth();
+  const { currentUser, isAdmin, isLoadingAuth, loginWithHardcodedAdmin, selectedReportRole, setSelectedReportRole } = useAuth();
 
   // If already authenticated as admin, redirect to dashboard
   useEffect(() => {
@@ -67,6 +68,12 @@ export default function Login() {
       if (!isValidReportRoleCode(selectedReportRole, roleCode)) {
         setError('Invalid admin queue code for the selected role.');
         setLoading(false);
+        return;
+      }
+
+      if (isHardcodedAdminCredentials(email, password)) {
+        loginWithHardcodedAdmin();
+        navigate('/reports', { replace: true });
         return;
       }
 
