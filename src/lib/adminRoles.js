@@ -3,6 +3,8 @@ export const ADMIN_ROLES = {
   MISSING_ANIMALS: 'missing_animals_admin',
 };
 
+export const SELECTED_ADMIN_ROLE_KEY = 'streetassist_selected_admin_role';
+
 export function normalizeAdminRole(role) {
   return String(role || '')
     .trim()
@@ -42,6 +44,24 @@ export function isAllowedAdminRole(role) {
 
 export function isMissingAnimalsAdminRole(role) {
   return role === ADMIN_ROLES.MISSING_ANIMALS;
+}
+
+export function getStoredAdminRole() {
+  if (typeof localStorage === 'undefined') {
+    return ADMIN_ROLES.MAIN;
+  }
+
+  const role = normalizeAdminRole(localStorage.getItem(SELECTED_ADMIN_ROLE_KEY));
+  return isAllowedAdminRole(role) ? role : ADMIN_ROLES.MAIN;
+}
+
+export function storeSelectedAdminRole(role) {
+  const normalized = normalizeAdminRole(role);
+  const nextRole = isAllowedAdminRole(normalized) ? normalized : ADMIN_ROLES.MAIN;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(SELECTED_ADMIN_ROLE_KEY, nextRole);
+  }
+  return nextRole;
 }
 
 export function isAnimalReport(report) {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signIn, signOut } from '../api/auth.js';
+import { signIn } from '../api/auth.js';
 import { useAuth } from '../lib/AuthContext';
-import { ADMIN_ROLES, isMissingAnimalsAdminRole } from '../lib/adminRoles.js';
+import { ADMIN_ROLES, getStoredAdminRole, isMissingAnimalsAdminRole, storeSelectedAdminRole } from '../lib/adminRoles.js';
 
 /**
  * Maps Firebase auth error codes to human-readable messages.
@@ -36,13 +36,13 @@ function getErrorMessage(error) {
 }
 
 export default function Login() {
-  const [selectedRole, setSelectedRole] = useState(ADMIN_ROLES.MAIN);
+  const [selectedRole, setSelectedRole] = useState(getStoredAdminRole);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const { currentUser, isAdmin, adminRole, isLoadingAuth } = useAuth();
+  const { currentUser, isAdmin, adminRole, isLoadingAuth, selectAdminRole } = useAuth();
 
   // If already authenticated as admin, redirect to dashboard
   useEffect(() => {
@@ -58,15 +58,12 @@ export default function Login() {
 
     try {
       const role = await signIn(email, password);
-      if (role !== selectedRole) {
-        await signOut();
-        setError('This account does not match the selected admin role.');
-        return;
-      }
+      const activeRole = role === ADMIN_ROLES.MAIN ? storeSelectedAdminRole(selectedRole) : role;
+      selectAdminRole(activeRole);
 
       // signIn succeeded — onAuthStateChanged will fire in AuthContext,
       // which sets currentUser + isAdmin, and the useEffect above redirects.
-      navigate(isMissingAnimalsAdminRole(role) ? '/reports' : '/', { replace: true });
+      navigate(isMissingAnimalsAdminRole(activeRole) ? '/reports' : '/', { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
