@@ -22,7 +22,7 @@ export default function AdminLayout() {
   const title = pageTitles[location.pathname] || 'StreetAssist Admin';
   const isMissingAnimalsAdmin = isMissingAnimalsAdminRole(adminRole);
 
-  if (isMissingAnimalsAdmin && !['/reports', '/profile'].includes(location.pathname)) {
+  if (isMissingAnimalsAdmin && !['/reports', '/announcements', '/profile'].includes(location.pathname)) {
     return <Navigate to="/reports" replace />;
   }
 

@@ -17,7 +17,7 @@ const EMPTY_FORM = {
   latitude: null, longitude: null,
 };
 
-export default function AddAnnouncementDialog({ open, onClose, announcement }) {
+export default function AddAnnouncementDialog({ open, onClose, announcement, forcedCategory = null }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -40,7 +40,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
     if (announcement) {
       setForm({
         title: announcement.title || '',
-        category: announcement.category || 'Missing Person',
+        category: forcedCategory || announcement.category || 'Missing Person',
         subtitle: announcement.subtitle || '',
         name: announcement.name || '',
         age: announcement.age || '',
@@ -55,13 +55,13 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
       setImagePreview(announcement.imageUrl || announcement.image_url || null);
       setExistingProofImages(announcement.evidenceUrls || (announcement.evidenceUrl ? [announcement.evidenceUrl] : []));
     } else {
-      setForm(EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, category: forcedCategory || EMPTY_FORM.category });
       setImagePreview(null);
       setExistingProofImages([]);
     }
     setImageFile(null);
     setProofFiles([]);
-  }, [announcement, open]);
+  }, [announcement, open, forcedCategory]);
 
   const update = (field, value) => setForm(p => ({ ...p, [field]: value }));
 
@@ -169,6 +169,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
       if (announcement) {
         await updateAnnouncement(announcement.id, {
           ...form,
+          category: forcedCategory || form.category,
           imageUrl: finalImageUrl,
           image_url: finalImageUrl,
           evidenceUrl: finalEvidenceUrls[0] || '',
@@ -178,6 +179,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
       } else {
         await createAnnouncement({
           ...form,
+          category: forcedCategory || form.category,
           status: 'Reported',
           imageUrl: finalImageUrl,
           evidenceUrl: finalEvidenceUrls[0] || '',
@@ -185,7 +187,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
         });
         toast.success('Announcement posted successfully');
       }
-      setForm(EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, category: forcedCategory || EMPTY_FORM.category });
       removeImage();
       setProofFiles([]);
       setExistingProofImages([]);
@@ -200,7 +202,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
 
   const handleClose = () => {
     if (saving || uploading) return; // prevent closing mid-submit
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, category: forcedCategory || EMPTY_FORM.category });
     removeImage();
     setProofFiles([]);
     setExistingProofImages([]);
@@ -246,7 +248,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement }) {
             </div>
             <div>
               <Label>Category</Label>
-              <Select value={form.category} onValueChange={v => update('category', v)} disabled={isClosed}>
+              <Select value={form.category} onValueChange={v => update('category', v)} disabled={isClosed || !!forcedCategory}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Missing Person">Missing Person</SelectItem>

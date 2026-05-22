@@ -84,9 +84,37 @@ export function isAnimalReport(report) {
   );
 }
 
+export function isAnimalAnnouncement(announcement) {
+  const fields = [
+    announcement?.category,
+    announcement?.title,
+    announcement?.content,
+    announcement?.subtitle,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    fields.includes('missing animal') ||
+    fields.includes('animal') ||
+    fields.includes('dog') ||
+    fields.includes('cat') ||
+    fields.includes('pet')
+  );
+}
+
 export function canAccessReport(report, adminRole) {
   if (isMissingAnimalsAdminRole(adminRole)) {
     return isAnimalReport(report);
+  }
+
+  return true;
+}
+
+export function canAccessAnnouncement(announcement, adminRole) {
+  if (isMissingAnimalsAdminRole(adminRole)) {
+    return isAnimalAnnouncement(announcement);
   }
 
   return true;

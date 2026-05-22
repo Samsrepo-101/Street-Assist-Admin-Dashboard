@@ -4,9 +4,10 @@ import { LayoutDashboard, FileText, Megaphone, Trash2, Bell, LogOut, X, User } f
 import { useAuth } from '../../lib/AuthContext';
 import { subscribeToAdminNotifications } from '../../api/notifications.js';
 import { subscribeToReports } from '../../api/reports.js';
+import { subscribeToAnnouncements } from '../../api/announcement.js';
 import { collectionGroup, query, onSnapshot } from 'firebase/firestore';
 import { db } from '../../api/firebase.js';
-import { canAccessReport, isMissingAnimalsAdminRole } from '../../lib/adminRoles.js';
+import { canAccessAnnouncement, canAccessReport, isMissingAnimalsAdminRole } from '../../lib/adminRoles.js';
 
 const navItems = [
   { path: '/',              label: 'Dashboard',    icon: LayoutDashboard },
@@ -49,17 +50,15 @@ export default function Sidebar({ open, onClose }) {
     });
 
     // 3. Unread comments count across announcements
-    if (isMissingAnimalsAdmin) {
-      setUnreadCount(0);
-      setUnreadCommentsCount(0);
-      return () => {
-        unsubReports();
-      };
-    }
-
     const commentsQ = query(collectionGroup(db, 'comments'));
+    let activeAnnouncements = [];
     
     const calculateUnreadComments = (commentsList) => {
+      const accessibleAnnouncementIds = new Set(
+        activeAnnouncements
+          .filter(ann => canAccessAnnouncement(ann, adminRole))
+          .map(ann => ann.id)
+      );
       const unreadAnns = new Set();
       commentsList.forEach(docSnap => {
         const comment = docSnap.data();
@@ -73,8 +72,9 @@ export default function Sidebar({ open, onClose }) {
 
         const lastViewedStr = localStorage.getItem(`last_viewed_comments_${announcementId}`);
         const lastViewed = lastViewedStr ? parseInt(lastViewedStr, 10) : 0;
+        const canCountComment = !isMissingAnimalsAdmin || accessibleAnnouncementIds.has(announcementId);
 
-        if (commentTime > lastViewed) {
+        if (canCountComment && commentTime > lastViewed) {
           unreadAnns.add(announcementId);
         }
       });
@@ -82,6 +82,10 @@ export default function Sidebar({ open, onClose }) {
     };
 
     let activeCommentsDocs = [];
+    const unsubAnnouncements = subscribeToAnnouncements(announcements => {
+      activeAnnouncements = announcements;
+      calculateUnreadComments(activeCommentsDocs);
+    });
     const unsubComments = onSnapshot(commentsQ, (snapshot) => {
       activeCommentsDocs = snapshot.docs;
       calculateUnreadComments(activeCommentsDocs);
@@ -96,13 +100,14 @@ export default function Sidebar({ open, onClose }) {
     return () => {
       unsub?.();
       unsubReports();
+      unsubAnnouncements();
       unsubComments();
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [adminRole]);
 
   const visibleNavItems = isMissingAnimalsAdminRole(adminRole)
-    ? navItems.filter(item => item.path === '/reports')
+    ? navItems.filter(item => item.path === '/reports' || item.path === '/announcements')
     : navItems;
 
   return (

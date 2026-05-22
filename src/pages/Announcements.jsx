@@ -13,6 +13,8 @@ import { isAfter, subDays } from 'date-fns';
 import AnnouncementCard from '../components/announcement/AnnouncementCard';
 import AddAnnouncementDialog from '../components/announcement/AddAnnouncementDialog';
 import CommentsDialog from '../components/announcement/CommentsDialog';
+import { useAuth } from '../lib/AuthContext';
+import { canAccessAnnouncement, isMissingAnimalsAdminRole } from '../lib/adminRoles.js';
 
 function ProofGallery({ images }) {
   const [current, setCurrent] = useState(0);
@@ -70,6 +72,8 @@ export default function Announcements() {
   const [clearEvidence, setClearEvidence] = useState(false);
   const statusTargetIsClosed = statusTarget?.status === 'Case Closed';
   const fileInputRef = useRef(null);
+  const { adminRole } = useAuth();
+  const isMissingAnimalsAdmin = isMissingAnimalsAdminRole(adminRole);
 
   useEffect(() => {
     const urls = evidenceFiles.map(file => URL.createObjectURL(file));
@@ -210,13 +214,15 @@ export default function Announcements() {
   const filtered = useMemo(() => {
     // 1. Filter
     let result = announcements.filter(ann => {
+      if (!canAccessAnnouncement(ann, adminRole)) return false;
+
       const matchSearch = !search ||
         ann.title?.toLowerCase().includes(search.toLowerCase()) ||
         ann.content?.toLowerCase().includes(search.toLowerCase()) ||
         ann.subtitle?.toLowerCase().includes(search.toLowerCase());
 
       const itemCategory = ann.category || 'Missing Person';
-      const matchCategory = categoryFilter === 'All Categories' || itemCategory === categoryFilter;
+      const matchCategory = isMissingAnimalsAdmin || categoryFilter === 'All Categories' || itemCategory === categoryFilter;
 
       let matchDate = true;
       if (dateFilter === 'Today' || dateFilter === 'This Week' || dateFilter === 'This Month') {
@@ -253,7 +259,7 @@ export default function Announcements() {
     });
 
     return result;
-  }, [announcements, search, categoryFilter, dateFilter, statusFilter]);
+  }, [announcements, search, categoryFilter, dateFilter, statusFilter, adminRole, isMissingAnimalsAdmin]);
 
   if (isLoading) {
     return <div className="space-y-4 w-full">{[1,2].map(i => <Skeleton key={i} className="h-48 rounded-2xl" />)}</div>;
@@ -282,16 +288,22 @@ export default function Announcements() {
               className="pl-8 h-9 text-sm bg-muted/40 border-0 focus-visible:ring-1"
             />
           </div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-44 h-9 text-sm bg-muted/40 border-0">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All Categories">All Categories</SelectItem>
-              <SelectItem value="Missing Person">Missing Person</SelectItem>
-              <SelectItem value="Missing Animal">Missing Animal</SelectItem>
-            </SelectContent>
-          </Select>
+          {isMissingAnimalsAdmin ? (
+            <span className="h-9 inline-flex items-center rounded-md bg-emerald-50 px-3 text-sm font-semibold text-emerald-700">
+              Missing animal only
+            </span>
+          ) : (
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-44 h-9 text-sm bg-muted/40 border-0">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All Categories">All Categories</SelectItem>
+                <SelectItem value="Missing Person">Missing Person</SelectItem>
+                <SelectItem value="Missing Animal">Missing Animal</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Select value={dateFilter} onValueChange={setDateFilter}>
             <SelectTrigger className="w-40 h-9 text-sm bg-muted/40 border-0">
               <SelectValue placeholder="Date" />
@@ -340,8 +352,8 @@ export default function Announcements() {
         )}
       </div>
 
-      <AddAnnouncementDialog open={showAdd} onClose={() => setShowAdd(false)} />
-      <AddAnnouncementDialog open={!!editTarget} announcement={editTarget} onClose={() => setEditTarget(null)} />
+      <AddAnnouncementDialog open={showAdd} onClose={() => setShowAdd(false)} forcedCategory={isMissingAnimalsAdmin ? 'Missing Animal' : null} />
+      <AddAnnouncementDialog open={!!editTarget} announcement={editTarget} onClose={() => setEditTarget(null)} forcedCategory={isMissingAnimalsAdmin ? 'Missing Animal' : null} />
       <CommentsDialog announcement={commentsTarget} open={!!commentsTarget} onClose={() => setCommentsTarget(null)} />
 
       <Dialog open={!!statusTarget} onOpenChange={() => setStatusTarget(null)}>
