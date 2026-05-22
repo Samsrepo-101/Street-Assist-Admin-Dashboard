@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signIn } from '../api/auth.js';
+import { signIn, signOut } from '../api/auth.js';
 import { useAuth } from '../lib/AuthContext';
-import { isMissingAnimalsAdminRole } from '../lib/adminRoles.js';
+import { ADMIN_ROLES, isMissingAnimalsAdminRole } from '../lib/adminRoles.js';
 
 /**
  * Maps Firebase auth error codes to human-readable messages.
@@ -36,6 +36,7 @@ function getErrorMessage(error) {
 }
 
 export default function Login() {
+  const [selectedRole, setSelectedRole] = useState(ADMIN_ROLES.MAIN);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,6 +58,12 @@ export default function Login() {
 
     try {
       const role = await signIn(email, password);
+      if (role !== selectedRole) {
+        await signOut();
+        setError('This account does not match the selected admin role.');
+        return;
+      }
+
       // signIn succeeded — onAuthStateChanged will fire in AuthContext,
       // which sets currentUser + isAdmin, and the useEffect above redirects.
       navigate(isMissingAnimalsAdminRole(role) ? '/reports' : '/', { replace: true });
@@ -82,6 +89,24 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          <div>
+            <label
+              htmlFor="admin-role"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Admin role
+            </label>
+            <select
+              id="admin-role"
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            >
+              <option value={ADMIN_ROLES.MAIN}>Main Admin</option>
+              <option value={ADMIN_ROLES.MISSING_ANIMALS}>Missing Animals Admin</option>
+            </select>
+          </div>
+
           {/* Email field */}
           <div>
             <label
