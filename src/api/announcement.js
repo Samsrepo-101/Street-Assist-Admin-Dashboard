@@ -454,10 +454,13 @@ export async function updateAnnouncementStatus(announcementId, status, evidenceU
   const visibilityStatus = annSnap.exists() ? getAnnouncementVisibilityStatus(annSnap.data()) : 'active';
 
   const updatePayload = { case_status: mapped, caseStatus: mapped };
-  if (visibilityStatus === 'active') {
-    updatePayload.status = mapped;
-  } else {
+  // Firestore rules treat `status` as the public visibility/case status field.
+  // Keep `status` as 'archived'/'deleted' when hidden; otherwise set it to the case status.
+  if (visibilityStatus === 'archived' || visibilityStatus === 'deleted') {
     updatePayload.previous_status = mapped;
+  } else {
+    updatePayload.status = mapped;
+    updatePayload.previous_status = deleteField();
   }
 
   if (evidenceUrls === null || (Array.isArray(evidenceUrls) && evidenceUrls.length === 0)) {
