@@ -30,6 +30,7 @@ export function mapRawAnnouncementStatus(status) {
     return s;
   }
   const lower = s.toLowerCase();
+  if (lower === 'active' || lower === 'published') return 'Reported';
   if (lower === 'verified' || lower === 'verified by police' || lower === 'verified_by_police') return 'Verified by Police';
   if (lower === 'ongoing' || lower === 'search ongoing' || lower === 'search_ongoing') return 'Search Ongoing';
   if (lower === 'resolved' || lower === 'closed' || lower === 'case closed' || lower === 'case_closed') return 'Case Closed';
@@ -82,21 +83,23 @@ function isAnnouncementHiddenFromResidents(data) {
 function getStorablePreviousStatus(data) {
   const status = String(data?.status ?? '').trim().toLowerCase();
   if (status === 'archived' || status === 'deleted') {
-    return mapRawAnnouncementStatus(data?.previous_status ?? 'Reported');
+    return mapRawAnnouncementStatus(data?.case_status ?? data?.caseStatus ?? data?.previous_status ?? 'Reported');
   }
-  return mapRawAnnouncementStatus(data?.status ?? 'Reported');
+  return mapRawAnnouncementStatus(data?.case_status ?? data?.caseStatus ?? data?.previous_status ?? data?.status ?? 'Reported');
 }
 
-function mapAnnouncementStatus(status) {
-  const value = String(status ?? '').trim().toLowerCase();
+function mapAnnouncementStatus(data) {
+  const value = String(data?.status ?? '').trim().toLowerCase();
   if (value === 'archived' || value === 'deleted') return value;
-  return mapRawAnnouncementStatus(status);
+  return mapRawAnnouncementStatus(data?.case_status ?? data?.caseStatus ?? data?.previous_status ?? data?.status);
 }
 
 function getArchiveStatusUpdate(isHidden, hiddenAt, { isDeleted = false, previousStatus = 'Reported' } = {}) {
   return {
     ...getResidentVisibilityPayload(isHidden, hiddenAt, { isDeleted }),
-    status: isHidden ? (isDeleted ? 'deleted' : 'archived') : previousStatus,
+    status: isHidden ? (isDeleted ? 'deleted' : 'archived') : 'active',
+    case_status: previousStatus,
+    caseStatus: previousStatus,
     previous_status: isHidden ? previousStatus : null,
   };
 }
@@ -181,7 +184,9 @@ export function subscribeToAnnouncements(callback) {
           imageUrl: data.imageUrl ?? data.image_url ?? '',
           evidenceUrl: data.evidenceUrl ?? '',
           evidenceUrls: data.evidenceUrls ?? (data.evidenceUrl ? [data.evidenceUrl] : []),
-          status: mapAnnouncementStatus(data.status ?? ''),
+          status: mapAnnouncementStatus(data),
+          visibility_status: String(data.status ?? '').trim().toLowerCase() || 'active',
+          case_status: data.case_status ?? data.caseStatus ?? data.previous_status ?? null,
           previous_status: data.previous_status ?? null,
           deleted_at: data.deleted_at ?? null,
           archived_at: data.archived_at ?? null,
@@ -237,7 +242,9 @@ export async function createAnnouncement({ title, content, imageUrl, status, ...
     ...(content && content.trim() ? { content: content.trim() } : {}),
     // imageUrl from Cloudinary upload
     ...(imageUrl ? { imageUrl } : {}),
-    status: status ? mapRawAnnouncementStatus(status) : 'Reported',
+    status: 'active',
+    case_status: status ? mapRawAnnouncementStatus(status) : 'Reported',
+    caseStatus: status ? mapRawAnnouncementStatus(status) : 'Reported',
     ...getResidentVisibilityPayload(false),
     ...rest,
     timestamp: serverTimestamp(),
@@ -329,7 +336,7 @@ export async function postComment(announcementId, { userId, text }) {
   const annSnap = await getDoc(annRef);
   if (annSnap.exists()) {
     const annData = annSnap.data();
-    if (annData && mapRawAnnouncementStatus(annData.status) === 'Case Closed') {
+    if (annData && getStorablePreviousStatus(annData) === 'Case Closed') {
       throw new Error('This case has been closed and can no longer receive updates.');
     }
   }
@@ -431,7 +438,7 @@ export async function updateAnnouncementStatus(announcementId, status, evidenceU
   const mapped = mapRawAnnouncementStatus(status);
   const annRef = doc(db, 'announcements', announcementId);
 
-  const updatePayload = { status: mapped };
+  const updatePayload = { case_status: mapped, caseStatus: mapped };
   if (evidenceUrls === null || (Array.isArray(evidenceUrls) && evidenceUrls.length === 0)) {
     updatePayload.evidenceUrl = deleteField();
     updatePayload.evidenceUrls = deleteField();
@@ -460,7 +467,11 @@ export async function updateAnnouncement(announcementId, fields) {
 
   const updatedData = { ...fields };
   if (fields.title) updatedData.title = fields.title.trim();
-  if (fields.status) updatedData.status = mapRawAnnouncementStatus(fields.status);
+  if (fields.status) {
+    updatedData.case_status = mapRawAnnouncementStatus(fields.status);
+    updatedData.caseStatus = mapRawAnnouncementStatus(fields.status);
+    delete updatedData.status;
+  }
 
   await updateDoc(annRef, updatedData);
 }

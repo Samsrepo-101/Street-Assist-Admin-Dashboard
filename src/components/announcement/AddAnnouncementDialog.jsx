@@ -180,7 +180,6 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
         await createAnnouncement({
           ...form,
           category,
-          status: 'Reported',
           imageUrl: finalImageUrl,
           evidenceUrl: finalEvidenceUrls[0] || '',
           evidenceUrls: finalEvidenceUrls,

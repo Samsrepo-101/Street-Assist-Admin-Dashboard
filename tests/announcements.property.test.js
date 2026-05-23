@@ -215,6 +215,8 @@ describe('Announcement archive resident visibility', () => {
       expect.anything(),
       expect.objectContaining({
         status: 'archived',
+        case_status: 'Reported',
+        caseStatus: 'Reported',
         previous_status: 'Reported',
         deleted_at: null,
         archived_at: expect.any(String),
@@ -243,7 +245,9 @@ describe('Announcement archive resident visibility', () => {
     expect(updateDoc).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
-        status: 'Reported',
+        status: 'active',
+        case_status: 'Reported',
+        caseStatus: 'Reported',
         previous_status: null,
         archived_at: null,
         archivedAt: null,
@@ -281,6 +285,8 @@ describe('Announcement archive resident visibility', () => {
       expect.anything(),
       expect.objectContaining({
         status: 'archived',
+        case_status: 'Reported',
+        caseStatus: 'Reported',
         archived_at: '2026-05-21T09:03:00.000Z',
         archivedAt: '2026-05-21T09:03:00.000Z',
         archived: true,
@@ -318,6 +324,8 @@ describe('Announcement archive resident visibility', () => {
       expect.anything(),
       expect.objectContaining({
         status: 'deleted',
+        case_status: 'Reported',
+        caseStatus: 'Reported',
         previous_status: 'Reported',
         deleted_at: expect.any(String),
         archived: true,
