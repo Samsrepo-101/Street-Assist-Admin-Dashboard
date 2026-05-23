@@ -68,6 +68,9 @@ export function subscribeToAnnouncements(callback) {
         evidenceUrls: document.data().evidenceUrls ?? (document.data().evidenceUrl ? [document.data().evidenceUrl] : []),
         status: mapRawAnnouncementStatus(document.data().status ?? ''),
         archived_at: document.data().archived_at ?? null,
+        isArchived: document.data().isArchived ?? !!document.data().archived_at,
+        is_archived: document.data().is_archived ?? !!document.data().archived_at,
+        visible_to_residents: document.data().visible_to_residents ?? !document.data().archived_at,
       }));
 
       callback(announcements);
@@ -105,6 +108,9 @@ export async function createAnnouncement({ title, content, imageUrl, status, ...
     // imageUrl from Cloudinary upload
     ...(imageUrl ? { imageUrl } : {}),
     status: status ? mapRawAnnouncementStatus(status) : 'Reported',
+    isArchived: false,
+    is_archived: false,
+    visible_to_residents: true,
     ...rest,
     timestamp: serverTimestamp(),
   });
@@ -188,12 +194,18 @@ export async function deleteAnnouncement(announcementId) {
 export async function archiveAnnouncement(announcementId) {
   await updateDoc(doc(db, 'announcements', announcementId), {
     archived_at: new Date().toISOString(),
+    isArchived: true,
+    is_archived: true,
+    visible_to_residents: false,
   });
 }
 
 export async function restoreArchivedAnnouncement(announcementId) {
   await updateDoc(doc(db, 'announcements', announcementId), {
     archived_at: null,
+    isArchived: false,
+    is_archived: false,
+    visible_to_residents: true,
   });
 }
 

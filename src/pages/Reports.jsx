@@ -228,7 +228,7 @@ export default function Reports() {
             />
           </div>
           {isScopedReportAdmin ? (
-            <span className="h-9 inline-flex items-center rounded-md bg-blue-50 px-3 text-sm font-semibold text-blue-700">
+            <span className="h-9 inline-flex items-center rounded-md bg-primary/10 px-3 text-sm font-semibold text-primary border border-primary/20">
               {isHomelessAdmin ? 'Individual reports only' : 'Animal reports only'}
             </span>
           ) : (

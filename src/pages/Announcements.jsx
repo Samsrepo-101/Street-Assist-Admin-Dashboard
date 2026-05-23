@@ -286,7 +286,7 @@ export default function Announcements() {
             />
           </div>
           {isScopedAnnouncementAdmin ? (
-            <span className="h-9 inline-flex items-center rounded-md bg-blue-50 px-3 text-sm font-semibold text-blue-700">
+            <span className="h-9 inline-flex items-center rounded-md bg-primary/10 px-3 text-sm font-semibold text-primary border border-primary/20">
               {isMissingPersonAdmin ? 'Missing person only' : 'Missing animal only'}
             </span>
           ) : (
@@ -429,7 +429,7 @@ export default function Announcements() {
                     <span className="text-destructive">*</span> Proof required
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    Attach at least one photo or video (max 30 sec) to close this case.
+                    Attach at least one photo or video (max 10 sec) to close this case.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

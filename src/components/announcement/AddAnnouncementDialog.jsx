@@ -368,7 +368,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
           {announcement && (
             <div className="space-y-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <Label>Proof / Evidence <span className="text-muted-foreground font-normal text-xs">(images or video up to 30 sec)</span></Label>
+                <Label>Proof / Evidence <span className="text-muted-foreground font-normal text-xs">(images or video up to 10 sec)</span></Label>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"

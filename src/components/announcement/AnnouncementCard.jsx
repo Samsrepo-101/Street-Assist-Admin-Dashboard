@@ -50,8 +50,8 @@ function ProofGallery({ images }) {
 }
 
 const categoryColors = {
-  'Missing Person': 'bg-violet-100 text-violet-700 border-violet-200',
-  'Missing Animal': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Missing Person': 'bg-primary/10 text-primary border-primary/20',
+  'Missing Animal': 'bg-primary/10 text-primary border-primary/20',
 };
 
 const statusColors = {

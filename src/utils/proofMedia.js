@@ -1,5 +1,5 @@
 export const PROOF_MEDIA_ACCEPT = 'image/jpeg,image/jpg,image/png,video/mp4,video/quicktime,video/webm';
-export const MAX_PROOF_VIDEO_SECONDS = 30;
+export const MAX_PROOF_VIDEO_SECONDS = 10;
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png']);
 const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);

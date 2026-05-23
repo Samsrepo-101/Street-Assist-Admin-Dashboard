@@ -34,6 +34,8 @@ vi.mock('firebase/firestore', () => ({
   doc: vi.fn(() => ({})),
   updateDoc: vi.fn(),
   deleteDoc: vi.fn(),
+  getDoc: vi.fn(),
+  deleteField: vi.fn(() => ({ _deleteField: true })),
   serverTimestamp: vi.fn(() => ({ _serverTimestamp: true })),
 }));
 
@@ -194,6 +196,39 @@ describe('Property 6 — Announcement input validation', () => {
       );
     }
   );
+});
+
+describe('Announcement archive resident visibility', () => {
+  it('hides archived announcements from residents and restores visibility when restored', async () => {
+    const { updateDoc } = await import('firebase/firestore');
+    const { archiveAnnouncement, restoreArchivedAnnouncement } = await import('../src/api/announcement.js');
+
+    updateDoc.mockClear();
+
+    await archiveAnnouncement('announcement-1');
+
+    expect(updateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        archived_at: expect.any(String),
+        isArchived: true,
+        is_archived: true,
+        visible_to_residents: false,
+      })
+    );
+
+    await restoreArchivedAnnouncement('announcement-1');
+
+    expect(updateDoc).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        archived_at: null,
+        isArchived: false,
+        is_archived: false,
+        visible_to_residents: true,
+      })
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

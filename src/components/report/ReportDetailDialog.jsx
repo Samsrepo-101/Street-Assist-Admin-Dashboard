@@ -587,7 +587,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 <div className="flex flex-col gap-2 border-b border-border/60 pb-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <span className="text-xs font-bold text-foreground uppercase tracking-wide">Proof / Evidence</span>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Images or videos up to 30 seconds</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Images or videos up to 10 seconds</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
