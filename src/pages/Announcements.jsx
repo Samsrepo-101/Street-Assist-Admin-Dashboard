@@ -134,16 +134,19 @@ export default function Announcements() {
       await deleteAnnouncement(ann.id);
       toast.success('Announcement moved to trash');
     } catch (err) {
-      toast.error('Failed to move announcement to trash');
+      console.error('Failed to move announcement to trash:', err);
+      toast.error(err?.message || 'Failed to move announcement to trash. Check Firestore rules and your admin role.');
     }
   };
 
   const handleArchive = async (ann) => {
+    if (!confirm('Archive this announcement? It will be hidden from residents.')) return;
     try {
       await archiveAnnouncement(ann.id);
       toast.success('Announcement archived');
     } catch (err) {
-      toast.error('Failed to archive announcement');
+      console.error('Failed to archive announcement:', err);
+      toast.error(err?.message || 'Failed to archive announcement. Check Firestore rules and your admin role.');
     }
   };
 
@@ -210,8 +213,8 @@ export default function Announcements() {
   const filtered = useMemo(() => {
     // 1. Filter
     let result = announcements.filter(ann => {
-      if (ann.deleted_at) return false;
-      if (ann.archived_at) return false;
+      if (ann.deleted_at || ann.deletedAt) return false;
+      if (ann.archived_at || ann.archivedAt || ann.archived || ann.isArchived) return false;
       if (!canAccessAnnouncement(ann, adminRole)) return false;
 
       const matchSearch = !search ||

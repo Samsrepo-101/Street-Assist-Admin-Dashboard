@@ -210,6 +210,7 @@ describe('Announcement archive resident visibility', () => {
     expect(updateDoc).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
+        deleted_at: null,
         archived_at: expect.any(String),
         archivedAt: expect.any(String),
         archived: true,

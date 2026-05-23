@@ -341,11 +341,15 @@ export async function permanentlyDeleteAnnouncement(announcementId) {
 }
 
 export async function archiveAnnouncement(announcementId) {
+  if (!announcementId) {
+    throw new Error('Announcement ID is required');
+  }
+
   const now = new Date().toISOString();
-  await updateDoc(
-    doc(db, 'announcements', announcementId),
-    getResidentVisibilityPayload(true, now, { isDeleted: false })
-  );
+  await updateDoc(doc(db, 'announcements', announcementId), {
+    deleted_at: null,
+    ...getResidentVisibilityPayload(true, now, { isDeleted: false }),
+  });
 }
 
 export async function restoreArchivedAnnouncement(announcementId) {

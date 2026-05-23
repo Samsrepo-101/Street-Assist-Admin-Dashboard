@@ -1,0 +1,156 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function userData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Main admin plus scoped dashboard admins (Missing Person, Missing Animals, Homeless)
+    function isDashboardAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && (
+          userData().role in [
+            'admin',
+            'missing_person_admin',
+            'missing_animals_admin',
+            'missing_animal_admin',
+            'homeless_admin'
+          ]
+          || userData().userType in [
+            'admin',
+            'missing_person_admin',
+            'missing_animals_admin',
+            'missing_animal_admin',
+            'homeless_admin'
+          ]
+          || userData().user_type in [
+            'admin',
+            'missing_person_admin',
+            'missing_animals_admin',
+            'missing_animal_admin',
+            'homeless_admin'
+          ]
+          || userData().isAdmin == true
+          || userData().is_admin == true
+        );
+    }
+
+    // Soft archive, move to trash, restore, or resident visibility sync on announcements
+    function isAnnouncementArchiveOrDeleteUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly([
+          'archived_at',
+          'archivedAt',
+          'archived',
+          'isArchived',
+          'is_archived',
+          'deleted_at',
+          'deleted',
+          'isDeleted',
+          'is_deleted',
+          'hidden',
+          'is_hidden',
+          'isHidden',
+          'hidden_from_residents',
+          'hiddenFromResidents',
+          'visible_to_residents',
+          'visibleToResidents',
+          'isVisible',
+          'visible',
+          'active',
+          'isActive',
+          'published',
+          'isPublished',
+          'public',
+          'isPublic',
+          'show_to_residents',
+          'showToResidents',
+          'resident_visible',
+          'residentVisible',
+          'resident_visibility_synced'
+        ]);
+    }
+
+    // Soft archive, move to trash, or restore on reports
+    function isReportArchiveOrDeleteUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['archived_at', 'deleted_at']);
+    }
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /announcements/{announcementId} {
+      // Public news
+      allow read: if true;
+      // Admin-only write
+      allow write: if request.auth != null
+                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+
+      // All dashboard admins: create, edit, archive, trash, restore, permanent delete
+      allow create, update, delete: if isDashboardAdmin();
+
+      // Archive, trash (soft delete), restore, and resident visibility sync
+      allow update: if isDashboardAdmin() && isAnnouncementArchiveOrDeleteUpdate();
+
+      // Permanent delete from trash
+      allow delete: if isDashboardAdmin();
+
+      match /comments/{commentId} {
+        // Guests can read comments
+        allow read: if true;
+        // Only logged-in users can comment
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth != null
+                              && resource.data.userId == request.auth.uid;
+      }
+    }
+
+    match /notifications/{notificationId} {
+      // Allow users to see only their own notifications
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Allow the app to mark a notification as read (update isRead field)
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Allow creating a notification (triggered after report submission)
+      allow create: if request.auth != null;
+      // Generally, users shouldn't delete their own notification history,
+      // but you can enable it if you want:
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    match /reports/{reportDocId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null
+                  && (
+                    resource.data.userId == request.auth.uid
+                    || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
+                  );
+      allow update, delete: if request.auth != null
+                            && (
+                              resource.data.userId == request.auth.uid
+                              || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
+                            );
+
+      // Dashboard admins: archive, trash, restore, permanent delete
+      allow update, delete: if isDashboardAdmin();
+
+      // Archive, trash (soft delete), and restore for dashboard admins
+      allow update: if isDashboardAdmin() && isReportArchiveOrDeleteUpdate();
+
+      // Permanent delete from trash
+      allow delete: if isDashboardAdmin();
+    }
+
+    match /admin_notifications/{notificationId} {
+      // Allow Residents to create a notification when they submit a report
+      allow create: if request.auth != null;
+      // Allow only Admins to read and update (mark as read) these notifications
+      allow read, update, delete: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+  }
+}
