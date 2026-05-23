@@ -75,12 +75,38 @@ function getResidentVisibilityPayload(isHidden, hiddenAt = null, { isDeleted = f
 }
 
 function isAnnouncementHiddenFromResidents(data) {
-  return !!(data?.archived_at || data?.deleted_at);
+  const status = String(data?.status ?? '').trim().toLowerCase();
+  return !!(data?.archived_at || data?.deleted_at || status === 'archived' || status === 'deleted');
+}
+
+function getStorablePreviousStatus(data) {
+  const status = String(data?.status ?? '').trim().toLowerCase();
+  if (status === 'archived' || status === 'deleted') {
+    return mapRawAnnouncementStatus(data?.previous_status ?? 'Reported');
+  }
+  return mapRawAnnouncementStatus(data?.status ?? 'Reported');
+}
+
+function mapAnnouncementStatus(status) {
+  const value = String(status ?? '').trim().toLowerCase();
+  if (value === 'archived' || value === 'deleted') return value;
+  return mapRawAnnouncementStatus(status);
+}
+
+function getArchiveStatusUpdate(isHidden, hiddenAt, { isDeleted = false, previousStatus = 'Reported' } = {}) {
+  return {
+    ...getResidentVisibilityPayload(isHidden, hiddenAt, { isDeleted }),
+    status: isHidden ? (isDeleted ? 'deleted' : 'archived') : previousStatus,
+    previous_status: isHidden ? previousStatus : null,
+  };
 }
 
 function needsResidentVisibilitySync(data) {
   if (!isAnnouncementHiddenFromResidents(data)) return false;
   if (data.resident_visibility_synced === true) return false;
+
+  const status = String(data?.status ?? '').trim().toLowerCase();
+  if (status !== 'archived' && status !== 'deleted') return true;
 
   const isHidden = true;
   return (
@@ -111,9 +137,10 @@ function queueResidentVisibilitySync(announcementId, data) {
   const hiddenAt = data.archived_at || data.deleted_at;
   const isDeleted = !!data.deleted_at;
 
+  const previousStatus = getStorablePreviousStatus(data);
   updateDoc(
     doc(db, 'announcements', announcementId),
-    getResidentVisibilityPayload(true, hiddenAt, { isDeleted })
+    getArchiveStatusUpdate(true, hiddenAt, { isDeleted, previousStatus })
   ).catch((error) => {
     console.error('Failed to sync announcement resident visibility:', error);
     syncedHiddenAnnouncementIds.delete(announcementId);
@@ -154,7 +181,8 @@ export function subscribeToAnnouncements(callback) {
           imageUrl: data.imageUrl ?? data.image_url ?? '',
           evidenceUrl: data.evidenceUrl ?? '',
           evidenceUrls: data.evidenceUrls ?? (data.evidenceUrl ? [data.evidenceUrl] : []),
-          status: mapRawAnnouncementStatus(data.status ?? ''),
+          status: mapAnnouncementStatus(data.status ?? ''),
+          previous_status: data.previous_status ?? null,
           deleted_at: data.deleted_at ?? null,
           archived_at: data.archived_at ?? null,
           archivedAt: data.archivedAt ?? data.archived_at ?? null,
@@ -324,17 +352,27 @@ export async function deleteAnnouncement(announcementId) {
 }
 
 export async function moveAnnouncementToTrash(announcementId) {
+  const annRef = doc(db, 'announcements', announcementId);
+  const annSnap = await getDoc(annRef);
+  const previousStatus = annSnap.exists() ? getStorablePreviousStatus(annSnap.data()) : 'Reported';
   const now = new Date().toISOString();
-  await updateDoc(doc(db, 'announcements', announcementId), {
+
+  await updateDoc(annRef, {
     deleted_at: now,
-    ...getResidentVisibilityPayload(true, now, { isDeleted: true }),
+    ...getArchiveStatusUpdate(true, now, { isDeleted: true, previousStatus }),
   });
 }
 
 export async function restoreDeletedAnnouncement(announcementId) {
-  await updateDoc(doc(db, 'announcements', announcementId), {
+  const annRef = doc(db, 'announcements', announcementId);
+  const annSnap = await getDoc(annRef);
+  const previousStatus = annSnap.exists()
+    ? mapRawAnnouncementStatus(annSnap.data()?.previous_status ?? 'Reported')
+    : 'Reported';
+
+  await updateDoc(annRef, {
     deleted_at: null,
-    ...getResidentVisibilityPayload(false),
+    ...getArchiveStatusUpdate(false, null, { previousStatus }),
   });
 }
 
@@ -347,15 +385,25 @@ export async function archiveAnnouncement(announcementId) {
     throw new Error('Announcement ID is required');
   }
 
+  const annRef = doc(db, 'announcements', announcementId);
+  const annSnap = await getDoc(annRef);
+  const previousStatus = annSnap.exists() ? getStorablePreviousStatus(annSnap.data()) : 'Reported';
   const now = new Date().toISOString();
-  await updateDoc(doc(db, 'announcements', announcementId), {
+
+  await updateDoc(annRef, {
     deleted_at: null,
-    ...getResidentVisibilityPayload(true, now, { isDeleted: false }),
+    ...getArchiveStatusUpdate(true, now, { isDeleted: false, previousStatus }),
   });
 }
 
 export async function restoreArchivedAnnouncement(announcementId) {
-  await updateDoc(doc(db, 'announcements', announcementId), getResidentVisibilityPayload(false));
+  const annRef = doc(db, 'announcements', announcementId);
+  const annSnap = await getDoc(annRef);
+  const previousStatus = annSnap.exists()
+    ? mapRawAnnouncementStatus(annSnap.data()?.previous_status ?? 'Reported')
+    : 'Reported';
+
+  await updateDoc(annRef, getArchiveStatusUpdate(false, null, { previousStatus }));
 }
 
 export async function syncArchivedAnnouncementVisibility(announcement) {
@@ -364,10 +412,11 @@ export async function syncArchivedAnnouncementVisibility(announcement) {
 
   const hiddenAt = announcement.archived_at || announcement.deleted_at;
   const isDeleted = !!announcement.deleted_at;
+  const previousStatus = mapRawAnnouncementStatus(announcement.previous_status ?? 'Reported');
 
   await updateDoc(
     doc(db, 'announcements', announcement.id),
-    getResidentVisibilityPayload(true, hiddenAt, { isDeleted })
+    getArchiveStatusUpdate(true, hiddenAt, { isDeleted, previousStatus })
   );
 }
 

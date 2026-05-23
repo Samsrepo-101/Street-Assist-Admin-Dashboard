@@ -200,16 +200,22 @@ describe('Property 6 — Announcement input validation', () => {
 
 describe('Announcement archive resident visibility', () => {
   it('hides archived announcements from residents and restores visibility when restored', async () => {
-    const { updateDoc } = await import('firebase/firestore');
+    const { updateDoc, getDoc } = await import('firebase/firestore');
     const { archiveAnnouncement, restoreArchivedAnnouncement } = await import('../src/api/announcement.js');
 
     updateDoc.mockClear();
+    getDoc.mockResolvedValue({
+      exists: () => true,
+      data: () => ({ status: 'Reported' }),
+    });
 
     await archiveAnnouncement('announcement-1');
 
     expect(updateDoc).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
+        status: 'archived',
+        previous_status: 'Reported',
         deleted_at: null,
         archived_at: expect.any(String),
         archivedAt: expect.any(String),
@@ -237,6 +243,8 @@ describe('Announcement archive resident visibility', () => {
     expect(updateDoc).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
+        status: 'Reported',
+        previous_status: null,
         archived_at: null,
         archivedAt: null,
         archived: false,
@@ -265,12 +273,14 @@ describe('Announcement archive resident visibility', () => {
     await syncArchivedAnnouncementVisibility({
       id: 'announcement-2',
       archived_at: '2026-05-21T09:03:00.000Z',
+      previous_status: 'Reported',
       resident_visibility_synced: false,
     });
 
     expect(updateDoc).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
+        status: 'archived',
         archived_at: '2026-05-21T09:03:00.000Z',
         archivedAt: '2026-05-21T09:03:00.000Z',
         archived: true,
@@ -296,6 +306,10 @@ describe('Announcement archive resident visibility', () => {
 
     updateDoc.mockClear();
     deleteDoc.mockClear();
+    getDoc.mockResolvedValue({
+      exists: () => true,
+      data: () => ({ status: 'Reported' }),
+    });
 
     await deleteAnnouncement('announcement-3');
 
@@ -303,6 +317,8 @@ describe('Announcement archive resident visibility', () => {
     expect(updateDoc).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
+        status: 'deleted',
+        previous_status: 'Reported',
         deleted_at: expect.any(String),
         archived: true,
         isArchived: true,

@@ -47,7 +47,7 @@ export default function Archive() {
   );
 
   const archivedAnnouncements = useMemo(
-    () => announcements.filter(announcement => announcement.archived_at && !announcement.deleted_at && canAccessAnnouncement(announcement, adminRole)),
+    () => announcements.filter(announcement => (announcement.status === 'archived' || announcement.archived_at) && announcement.status !== 'deleted' && !announcement.deleted_at && canAccessAnnouncement(announcement, adminRole)),
     [announcements, adminRole]
   );
 
