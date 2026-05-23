@@ -211,9 +211,13 @@ describe('Announcement archive resident visibility', () => {
       expect.anything(),
       expect.objectContaining({
         archived_at: expect.any(String),
+        archivedAt: expect.any(String),
+        archived: true,
         isArchived: true,
         is_archived: true,
         visible_to_residents: false,
+        visibleToResidents: false,
+        isVisible: false,
       })
     );
 
@@ -223,9 +227,64 @@ describe('Announcement archive resident visibility', () => {
       expect.anything(),
       expect.objectContaining({
         archived_at: null,
+        archivedAt: null,
+        archived: false,
         isArchived: false,
         is_archived: false,
         visible_to_residents: true,
+        visibleToResidents: true,
+        isVisible: true,
+      })
+    );
+  });
+
+  it('backfills resident visibility aliases for existing archived announcements', async () => {
+    const { updateDoc } = await import('firebase/firestore');
+    const { syncArchivedAnnouncementVisibility } = await import('../src/api/announcement.js');
+
+    updateDoc.mockClear();
+
+    await syncArchivedAnnouncementVisibility({
+      id: 'announcement-2',
+      archived_at: '2026-05-21T09:03:00.000Z',
+      resident_visibility_synced: false,
+    });
+
+    expect(updateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        archived_at: '2026-05-21T09:03:00.000Z',
+        archivedAt: '2026-05-21T09:03:00.000Z',
+        archived: true,
+        isArchived: true,
+        is_archived: true,
+        visible_to_residents: false,
+        visibleToResidents: false,
+        isVisible: false,
+      })
+    );
+  });
+
+  it('moves deleted announcements to trash instead of permanently deleting them', async () => {
+    const { updateDoc, deleteDoc } = await import('firebase/firestore');
+    const { deleteAnnouncement } = await import('../src/api/announcement.js');
+
+    updateDoc.mockClear();
+    deleteDoc.mockClear();
+
+    await deleteAnnouncement('announcement-3');
+
+    expect(deleteDoc).not.toHaveBeenCalled();
+    expect(updateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        deleted_at: expect.any(String),
+        archived: true,
+        isArchived: true,
+        is_archived: true,
+        visible_to_residents: false,
+        visibleToResidents: false,
+        isVisible: false,
       })
     );
   });

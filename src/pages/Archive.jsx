@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { subscribeToReports, restoreArchivedReport, getStatusConfig } from '../api/reports.js';
-import { subscribeToAnnouncements, restoreArchivedAnnouncement } from '../api/announcement.js';
+import { subscribeToAnnouncements, restoreArchivedAnnouncement, syncArchivedAnnouncementVisibility } from '../api/announcement.js';
 import { Button } from '@/components/ui/button';
 import { Archive as ArchiveIcon, FileText, Megaphone, RotateCcw, Clock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -22,6 +22,7 @@ export default function Archive() {
   const [announcements, setAnnouncements] = useState([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const syncedAnnouncementIds = useRef(new Set());
   const { adminRole } = useAuth();
 
   useEffect(() => {
@@ -46,9 +47,21 @@ export default function Archive() {
   );
 
   const archivedAnnouncements = useMemo(
-    () => announcements.filter(announcement => announcement.archived_at && canAccessAnnouncement(announcement, adminRole)),
+    () => announcements.filter(announcement => announcement.archived_at && !announcement.deleted_at && canAccessAnnouncement(announcement, adminRole)),
     [announcements, adminRole]
   );
+
+  useEffect(() => {
+    archivedAnnouncements.forEach((announcement) => {
+      if (announcement.resident_visibility_synced || syncedAnnouncementIds.current.has(announcement.id)) return;
+
+      syncedAnnouncementIds.current.add(announcement.id);
+      syncArchivedAnnouncementVisibility(announcement).catch((error) => {
+        console.error('Failed to sync archived announcement visibility:', error);
+        syncedAnnouncementIds.current.delete(announcement.id);
+      });
+    });
+  }, [archivedAnnouncements]);
 
   const restoreReport = async (reportId) => {
     try {

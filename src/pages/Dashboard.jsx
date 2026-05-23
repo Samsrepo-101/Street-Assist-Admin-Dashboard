@@ -25,7 +25,7 @@ export default function Dashboard() {
   }, []);
 
   const activeReports = reports.filter(r => !r.deleted_at && !r.archived_at);
-  const activeAnnouncements = announcements.filter(ann => !ann.archived_at);
+  const activeAnnouncements = announcements.filter(ann => !ann.deleted_at && !ann.archived_at);
   const total = activeReports.length;
   const pending = activeReports.filter(r => r.status === 'Pending').length;
   const onProgress = activeReports.filter(r => r.status === 'In Progress' || r.status === 'Verified').length;

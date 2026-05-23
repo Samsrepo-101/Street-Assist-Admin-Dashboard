@@ -129,12 +129,12 @@ export default function Announcements() {
   }, [location.state?.selectedAnnouncementId, announcements]);
 
   const handleDelete = async (ann) => {
-    if (!confirm('Delete this announcement?')) return;
+    if (!confirm('Move this announcement to trash?')) return;
     try {
       await deleteAnnouncement(ann.id);
-      toast.success('Announcement deleted');
+      toast.success('Announcement moved to trash');
     } catch (err) {
-      toast.error('Failed to delete announcement');
+      toast.error('Failed to move announcement to trash');
     }
   };
 
@@ -210,6 +210,7 @@ export default function Announcements() {
   const filtered = useMemo(() => {
     // 1. Filter
     let result = announcements.filter(ann => {
+      if (ann.deleted_at) return false;
       if (ann.archived_at) return false;
       if (!canAccessAnnouncement(ann, adminRole)) return false;
 

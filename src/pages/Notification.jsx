@@ -217,7 +217,7 @@ export default function Notifications() {
       checkDone();
     });
     const unsubAnn = subscribeToAnnouncements(data => {
-      setAnnouncements(data.filter(ann => !ann.archived_at));
+      setAnnouncements(data.filter(ann => !ann.deleted_at && !ann.archived_at));
       checkDone();
     });
 

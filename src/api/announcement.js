@@ -37,6 +37,23 @@ export function mapRawAnnouncementStatus(status) {
   return 'Reported';
 }
 
+function getResidentVisibilityPayload(isArchived, archivedAt = null) {
+  return {
+    archived_at: archivedAt,
+    archivedAt,
+    archived: isArchived,
+    isArchived,
+    is_archived: isArchived,
+    visible_to_residents: !isArchived,
+    visibleToResidents: !isArchived,
+    isVisible: !isArchived,
+  };
+}
+
+function needsHiddenVisibilitySync(announcement) {
+  return !announcement?.resident_visibility_synced;
+}
+
 export function subscribeToAnnouncements(callback) {
   const q = query(
     collection(db, 'announcements'),
@@ -46,32 +63,50 @@ export function subscribeToAnnouncements(callback) {
   const unsubscribe = onSnapshot(
     q,
     (snapshot) => {
-      const announcements = snapshot.docs.map((document) => ({
-        id: document.id,
-        title: document.data().title ?? '',
-        content: document.data().content ?? '',
-        timestamp: document.data().timestamp ?? null,
-        category: document.data().category ?? '',
-        subtitle: document.data().subtitle ?? '',
-        name: document.data().name ?? '',
-        age: document.data().age ?? '',
-        sex: document.data().sex ?? '',
-        contact: document.data().contact ?? '',
-        incident_date: document.data().incident_date ?? '',
-        incident_time: document.data().incident_time ?? '',
-        location_address: document.data().location_address ?? '',
-        latitude: document.data().latitude ?? null,
-        longitude: document.data().longitude ?? null,
-        image_url: document.data().image_url ?? '',
-        imageUrl: document.data().imageUrl ?? document.data().image_url ?? '',
-        evidenceUrl: document.data().evidenceUrl ?? '',
-        evidenceUrls: document.data().evidenceUrls ?? (document.data().evidenceUrl ? [document.data().evidenceUrl] : []),
-        status: mapRawAnnouncementStatus(document.data().status ?? ''),
-        archived_at: document.data().archived_at ?? null,
-        isArchived: document.data().isArchived ?? !!document.data().archived_at,
-        is_archived: document.data().is_archived ?? !!document.data().archived_at,
-        visible_to_residents: document.data().visible_to_residents ?? !document.data().archived_at,
-      }));
+      const announcements = snapshot.docs.map((document) => {
+        const data = document.data();
+        const isArchived = !!data.archived_at || !!data.deleted_at;
+
+        return {
+          id: document.id,
+          title: data.title ?? '',
+          content: data.content ?? '',
+          timestamp: data.timestamp ?? null,
+          category: data.category ?? '',
+          subtitle: data.subtitle ?? '',
+          name: data.name ?? '',
+          age: data.age ?? '',
+          sex: data.sex ?? '',
+          contact: data.contact ?? '',
+          incident_date: data.incident_date ?? '',
+          incident_time: data.incident_time ?? '',
+          location_address: data.location_address ?? '',
+          latitude: data.latitude ?? null,
+          longitude: data.longitude ?? null,
+          image_url: data.image_url ?? '',
+          imageUrl: data.imageUrl ?? data.image_url ?? '',
+          evidenceUrl: data.evidenceUrl ?? '',
+          evidenceUrls: data.evidenceUrls ?? (data.evidenceUrl ? [data.evidenceUrl] : []),
+          status: mapRawAnnouncementStatus(data.status ?? ''),
+          deleted_at: data.deleted_at ?? null,
+          archived_at: data.archived_at ?? null,
+          archivedAt: data.archivedAt ?? data.archived_at ?? null,
+          archived: data.archived ?? isArchived,
+          isArchived: data.isArchived ?? isArchived,
+          is_archived: data.is_archived ?? isArchived,
+          visible_to_residents: data.visible_to_residents ?? !isArchived,
+          visibleToResidents: data.visibleToResidents ?? data.visible_to_residents ?? !isArchived,
+          isVisible: data.isVisible ?? data.visible_to_residents ?? !isArchived,
+          resident_visibility_synced:
+            (!isArchived || data.archivedAt != null) &&
+            data.archived === isArchived &&
+            data.isArchived === isArchived &&
+            data.is_archived === isArchived &&
+            data.visible_to_residents === !isArchived &&
+            data.visibleToResidents === !isArchived &&
+            data.isVisible === !isArchived,
+        };
+      });
 
       callback(announcements);
     },
@@ -108,9 +143,7 @@ export async function createAnnouncement({ title, content, imageUrl, status, ...
     // imageUrl from Cloudinary upload
     ...(imageUrl ? { imageUrl } : {}),
     status: status ? mapRawAnnouncementStatus(status) : 'Reported',
-    isArchived: false,
-    is_archived: false,
-    visible_to_residents: true,
+    ...getResidentVisibilityPayload(false),
     ...rest,
     timestamp: serverTimestamp(),
   });
@@ -182,31 +215,48 @@ export async function postComment(announcementId, { userId, text }) {
 }
 
 /**
- * Deletes an announcement document from the /announcements collection.
+ * Moves an announcement document to trash.
  *
  * @param {string} announcementId - The ID of the announcement to delete.
  * @returns {Promise<void>}
  */
 export async function deleteAnnouncement(announcementId) {
+  await moveAnnouncementToTrash(announcementId);
+}
+
+export async function moveAnnouncementToTrash(announcementId) {
+  await updateDoc(doc(db, 'announcements', announcementId), {
+    deleted_at: new Date().toISOString(),
+    ...getResidentVisibilityPayload(true, new Date().toISOString()),
+  });
+}
+
+export async function restoreDeletedAnnouncement(announcementId) {
+  await updateDoc(doc(db, 'announcements', announcementId), {
+    deleted_at: null,
+    ...getResidentVisibilityPayload(false),
+  });
+}
+
+export async function permanentlyDeleteAnnouncement(announcementId) {
   await deleteDoc(doc(db, 'announcements', announcementId));
 }
 
 export async function archiveAnnouncement(announcementId) {
-  await updateDoc(doc(db, 'announcements', announcementId), {
-    archived_at: new Date().toISOString(),
-    isArchived: true,
-    is_archived: true,
-    visible_to_residents: false,
-  });
+  await updateDoc(doc(db, 'announcements', announcementId), getResidentVisibilityPayload(true, new Date().toISOString()));
 }
 
 export async function restoreArchivedAnnouncement(announcementId) {
-  await updateDoc(doc(db, 'announcements', announcementId), {
-    archived_at: null,
-    isArchived: false,
-    is_archived: false,
-    visible_to_residents: true,
-  });
+  await updateDoc(doc(db, 'announcements', announcementId), getResidentVisibilityPayload(false));
+}
+
+export async function syncArchivedAnnouncementVisibility(announcement) {
+  if (!announcement?.id || (!announcement.archived_at && !announcement.deleted_at) || !needsHiddenVisibilitySync(announcement)) return;
+
+  await updateDoc(
+    doc(db, 'announcements', announcement.id),
+    getResidentVisibilityPayload(true, announcement.archived_at || announcement.deleted_at)
+  );
 }
 
 /**
