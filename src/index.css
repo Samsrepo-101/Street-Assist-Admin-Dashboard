@@ -8,53 +8,53 @@
   :root {
     --font-inter: 'Inter', sans-serif;
 
-    /* StreetAssist Blue palette — matches the logo */
-    --background: 214 30% 96%;
-    --foreground: 213 40% 10%;
+    /* Light Blue & White Premium Palette */
+    --background: 200 40% 97%;      /* Premium Ice-Blue Background */
+    --foreground: 200 50% 10%;      /* Deep Slate Navy for high-contrast text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 213 40% 10%;
+    --card: 0 0% 100%;              /* Pure White for clean cards */
+    --card-foreground: 200 50% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 213 40% 10%;
+    --popover-foreground: 200 50% 10%;
 
-    /* Primary: royal blue from the logo */
-    --primary: 213 90% 48%;
+    /* Primary: Vibrant Sky/Light Blue */
+    --primary: 200 95% 48%;         /* Vibrant light blue (#0ea5e9 style) */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 213 40% 90%;
-    --secondary-foreground: 213 80% 25%;
+    --secondary: 200 30% 92%;       /* Soft light blue */
+    --secondary-foreground: 200 80% 25%;
 
-    --muted: 213 20% 92%;
-    --muted-foreground: 213 18% 44%;
+    --muted: 200 20% 92%;           /* Subtle muted light blue */
+    --muted-foreground: 200 15% 42%;
 
-    --accent: 213 90% 48%;
+    --accent: 200 95% 48%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 82% 57%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 213 25% 86%;
-    --input: 213 25% 86%;
-    --ring: 213 90% 48%;
+    --border: 200 25% 88%;          /* Very soft bordering */
+    --input: 200 25% 88%;
+    --ring: 200 95% 48%;
 
-    --chart-1: 213 90% 48%;
-    --chart-2: 38 92% 50%;
-    --chart-3: 200 80% 45%;
+    --chart-1: 200 95% 48%;
+    --chart-2: 190 90% 40%;
+    --chart-3: 215 90% 50%;
     --chart-4: 0 82% 57%;
     --chart-5: 262 83% 58%;
 
     --radius: 0.875rem;
 
-    /* Sidebar: deep navy blue */
-    --sidebar-background: 213 55% 10%;
-    --sidebar-foreground: 213 40% 90%;
-    --sidebar-primary: 213 80% 58%;
-    --sidebar-primary-foreground: 213 55% 10%;
-    --sidebar-accent: 213 50% 15%;
-    --sidebar-accent-foreground: 213 40% 90%;
-    --sidebar-border: 213 45% 16%;
-    --sidebar-ring: 213 80% 58%;
+    /* Sidebar: Clean White & Soft Blue Accents */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 200 50% 12%;
+    --sidebar-primary: 200 95% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 30% 96%;
+    --sidebar-accent-foreground: 200 80% 30%;
+    --sidebar-border: 200 20% 93%;
+    --sidebar-ring: 200 95% 48%;
   }
 }
 

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Calendar, User, Phone, Map, ImageIcon, ChevronLeft, ChevronRight, Tag, Download, Loader2, X, Play, Eye, Camera, Upload } from 'lucide-react';
+import { MapPin, Calendar, User, Phone, Map, ImageIcon, ChevronLeft, ChevronRight, Tag, Download, Loader2, X, Play, Eye, Camera, Upload, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { updateReportStatus, addReportStatusUpdate, updateReportMeta, enrichReportWithUser, getStatusConfig, REPORT_STATUSES } from '../../api/reports.js';
 import { exportReportPDF } from '../../utils/exportReportPDF.js';
@@ -132,6 +132,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const [existingProofImages, setExistingProofImages] = useState([]);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  const cameraVideoInputRef = useRef(null);
 
   useEffect(() => {
     const urls = proofFiles.map(file => URL.createObjectURL(file));
@@ -179,8 +180,8 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const handleProofSelection = async (event) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
-    if (status !== 'Resolved' && r.status !== 'Resolved') {
-      toast.error('Proof can only be added when the report is Resolved.');
+    if (!canManageProof) {
+      toast.error('Proof can only be added when the report is Resolved or Closed.');
       event.target.value = '';
       return;
     }
@@ -193,7 +194,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
   const r = enrichedReport;
   const isClosed = r.status === 'Closed';
-  const canManageProof = status === 'Resolved' || r.status === 'Resolved';
+  const canManageProof = status === 'Resolved' || r.status === 'Resolved' || isClosed;
   const statusCfg = getStatusConfig(r.status);
   const hasLocation = r.latitude != null && r.longitude != null;
 
@@ -204,7 +205,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
       let proofUrls = [];
       if (proofFiles.length > 0) {
         if (!canManageProof) {
-          toast.error('Proof can only be added when the report is Resolved.');
+          toast.error('Proof can only be added when the report is Resolved or Closed.');
           return;
         }
         toast.info(`Uploading ${proofFiles.length} proof media item(s)...`);
@@ -242,7 +243,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
       let proofUrls = [];
       if (proofFiles.length > 0) {
         if (!canManageProof) {
-          toast.error('Proof can only be added when the report is Resolved.');
+          toast.error('Proof can only be added when the report is Resolved or Closed.');
           return;
         }
         toast.info(`Uploading ${proofFiles.length} proof media item(s)...`);
@@ -325,7 +326,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
               {/* Photo */}
               <AttachmentGallery attachments={r.attachments} />
 
-              <Input
+              <input
                 ref={fileInputRef}
                 type="file"
                 multiple
@@ -333,11 +334,20 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 className="hidden"
                 onChange={handleProofSelection}
               />
-              {/* Camera capture input — rear camera on mobile */}
-              <Input
+              {/* Camera photo capture input — rear camera on mobile */}
+              <input
                 ref={cameraInputRef}
                 type="file"
-                accept="image/*,video/*"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleProofSelection}
+              />
+              {/* Camera video capture input — rear camera on mobile */}
+              <input
+                ref={cameraVideoInputRef}
+                type="file"
+                accept="video/*"
                 capture="environment"
                 className="hidden"
                 onChange={handleProofSelection}
@@ -477,11 +487,14 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground">Select Status</label>
-                    <Select value={status} onValueChange={handleStatusChange} disabled={isClosed}>
+                    <Select value={status} onValueChange={handleStatusChange}>
                       <SelectTrigger className="h-9 bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        {status === 'Closed' && (
+                          <SelectItem value="Closed">Closed</SelectItem>
+                        )}
                         {REPORT_STATUSES.map(s => {
                           const cfg = getStatusConfig(s);
                           return (
@@ -502,7 +515,6 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                       placeholder="E.g., Dispatched barangay responders and informed Barangay Captain..."
                       rows={2}
                       className="text-sm border-border bg-white"
-                      disabled={isClosed}
                     />
                   </div>
                 </div>
@@ -511,7 +523,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                   <Button 
                     type="button"
                     onClick={handleSendUpdate} 
-                    disabled={isClosed || saving || !status}
+                    disabled={saving || !status}
                     size="sm"
                     className="h-8 text-xs font-semibold"
                   >
@@ -572,7 +584,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                       size="sm"
                       onClick={() => {
                         if (!canManageProof) {
-                          toast.error('Set the report status to Resolved before adding proof.');
+                          toast.error('Set the report status to Resolved or Closed before adding proof.');
                           return;
                         }
                         fileInputRef.current?.click();
@@ -589,7 +601,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                       size="sm"
                       onClick={() => {
                         if (!canManageProof) {
-                          toast.error('Set the report status to Resolved before adding proof.');
+                          toast.error('Set the report status to Resolved or Closed before adding proof.');
                           return;
                         }
                         cameraInputRef.current?.click();
@@ -599,6 +611,23 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                     >
                       <Camera className="h-3.5 w-3.5 mr-1.5" />
                       Take Photo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (!canManageProof) {
+                          toast.error('Set the report status to Resolved or Closed before adding proof.');
+                          return;
+                        }
+                        cameraVideoInputRef.current?.click();
+                      }}
+                      disabled={!canManageProof}
+                      className="h-8 text-xs font-semibold bg-white flex-1 sm:flex-none"
+                    >
+                      <Video className="h-3.5 w-3.5 mr-1.5" />
+                      Record Video
                     </Button>
                   </div>
                 </div>
