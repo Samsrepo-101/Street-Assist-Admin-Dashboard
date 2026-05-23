@@ -39,6 +39,15 @@ export function mapRawAnnouncementStatus(status) {
 }
 
 const syncedHiddenAnnouncementIds = new Set();
+const LIFECYCLE_STATUSES = new Set(['active', 'archived', 'deleted']);
+
+function getAnnouncementVisibilityStatus(data) {
+  const status = String(data?.status ?? '').trim().toLowerCase();
+  if (status === 'archived' || status === 'deleted') return status;
+  if (data?.deleted_at || data?.deletedAt || data?.deleted === true || data?.isDeleted === true || data?.is_deleted === true) return 'deleted';
+  if (data?.archived_at || data?.archivedAt || data?.archived === true || data?.isArchived === true || data?.is_archived === true) return 'archived';
+  return 'active';
+}
 
 function getResidentVisibilityPayload(isHidden, hiddenAt = null, { isDeleted = false } = {}) {
   return {
@@ -76,22 +85,21 @@ function getResidentVisibilityPayload(isHidden, hiddenAt = null, { isDeleted = f
 }
 
 function isAnnouncementHiddenFromResidents(data) {
-  const status = String(data?.status ?? '').trim().toLowerCase();
-  return !!(data?.archived_at || data?.deleted_at || status === 'archived' || status === 'deleted');
+  return getAnnouncementVisibilityStatus(data) !== 'active';
 }
 
 function getStorablePreviousStatus(data) {
   const status = String(data?.status ?? '').trim().toLowerCase();
-  if (status === 'archived' || status === 'deleted') {
+  if (LIFECYCLE_STATUSES.has(status)) {
     return mapRawAnnouncementStatus(data?.case_status ?? data?.caseStatus ?? data?.previous_status ?? 'Reported');
   }
   return mapRawAnnouncementStatus(data?.case_status ?? data?.caseStatus ?? data?.previous_status ?? data?.status ?? 'Reported');
 }
 
 function mapAnnouncementStatus(data) {
-  const value = String(data?.status ?? '').trim().toLowerCase();
-  if (value === 'archived' || value === 'deleted') return value;
-  return mapRawAnnouncementStatus(data?.case_status ?? data?.caseStatus ?? data?.previous_status ?? data?.status);
+  const status = String(data?.status ?? '').trim().toLowerCase();
+  const fallback = LIFECYCLE_STATUSES.has(status) ? 'Reported' : data?.status;
+  return mapRawAnnouncementStatus(data?.case_status ?? data?.caseStatus ?? data?.previous_status ?? fallback);
 }
 
 function getArchiveStatusUpdate(isHidden, hiddenAt, { isDeleted = false, previousStatus = 'Reported' } = {}) {
@@ -162,7 +170,9 @@ export function subscribeToAnnouncements(callback) {
       const announcements = snapshot.docs.map((document) => {
         const data = document.data();
         queueResidentVisibilitySync(document.id, data);
-        const isArchived = isAnnouncementHiddenFromResidents(data);
+        const visibilityStatus = getAnnouncementVisibilityStatus(data);
+        const isArchived = visibilityStatus !== 'active';
+        const caseStatus = mapAnnouncementStatus(data);
 
         return {
           id: document.id,
@@ -184,9 +194,10 @@ export function subscribeToAnnouncements(callback) {
           imageUrl: data.imageUrl ?? data.image_url ?? '',
           evidenceUrl: data.evidenceUrl ?? '',
           evidenceUrls: data.evidenceUrls ?? (data.evidenceUrl ? [data.evidenceUrl] : []),
-          status: mapAnnouncementStatus(data),
-          visibility_status: String(data.status ?? '').trim().toLowerCase() || 'active',
-          case_status: data.case_status ?? data.caseStatus ?? data.previous_status ?? null,
+          status: caseStatus,
+          visibility_status: visibilityStatus,
+          case_status: caseStatus,
+          caseStatus: caseStatus,
           previous_status: data.previous_status ?? null,
           deleted_at: data.deleted_at ?? null,
           archived_at: data.archived_at ?? null,

@@ -1,58 +1,95 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    function signedIn() {
+      return request.auth != null;
     }
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserRole() {
+      return signedIn() ? currentUserDoc().data.role : null;
+    }
+
+    function isAdminRole() {
+      return signedIn() && currentUserRole() in [
+        "admin",
+        "missing_animals_admin",
+        "missing_animal_admin",
+        "missing_person_admin",
+        "homeless_admin"
+      ];
+    }
+
+    function isPublicAnnouncement(data) {
+      return data.status == "active"
+        && data.archived_at == null
+        && data.deleted_at == null
+        && data.archived != true
+        && data.isArchived != true
+        && data.is_archived != true
+        && data.deleted != true
+        && data.isDeleted != true
+        && data.is_deleted != true;
+    }
+
+    function isPublicAnnouncementListQuery() {
+      return resource.data.status == "active";
+    }
+
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
     match /announcements/{announcementId} {
-      // Public news - but hide archived and deleted announcements from residents
-      allow read: if true && resource.data.status != "archived" && resource.data.status != "deleted";
-      // Admin can read all announcements including archived/deleted
-      allow read: if request.auth != null
-                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
-      // Admin-only write
-      allow write: if request.auth != null
-                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+      // Public/residents can only read active news. Admins can read all.
+      // Resident list queries must include: where("status", "==", "active").
+      allow get: if isAdminRole() || isPublicAnnouncement(resource.data);
+      allow list: if isAdminRole() || isPublicAnnouncementListQuery();
+
+      // Admin-only create/update/delete, including archive and soft-delete.
+      allow create, update, delete: if isAdminRole();
+
       match /comments/{commentId} {
-        // Guests can read comments (only on non-archived/deleted announcements)
-        allow read: if true;
-        // Only logged-in users can comment
-        allow create: if request.auth != null;
-        allow update, delete: if request.auth != null
-                              && resource.data.userId == request.auth.uid;
+        // Public can read comments only on active announcements. Admins can read all.
+        allow get, list: if isAdminRole()
+          || isPublicAnnouncement(get(/databases/$(database)/documents/announcements/$(announcementId)).data);
+
+        // Only logged-in users can comment on active announcements. Admins can comment anywhere.
+        allow create: if signedIn()
+          && (
+            isAdminRole()
+            || isPublicAnnouncement(get(/databases/$(database)/documents/announcements/$(announcementId)).data)
+          );
+
+        allow update, delete: if signedIn()
+          && (isAdminRole() || resource.data.userId == request.auth.uid);
       }
     }
+
     match /notifications/{notificationId} {
-      // Allow users to see only their own notifications
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      // Allow the app to mark a notification as read (update isRead field)
-      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
-      // Allow creating a notification (triggered after report submission)
-      allow create: if request.auth != null;
-      // Generally, users shouldn't delete their own notification history, 
-      // but you can enable it if you want:
-      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow update: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn();
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
     }
+
     match /reports/{reportDocId} {
-      allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid;
-      allow read: if request.auth != null
-                  && (
-                    resource.data.userId == request.auth.uid
-                    || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
-                  );
-      allow update, delete: if request.auth != null
-                            && (
-                              resource.data.userId == request.auth.uid
-                              || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
-                            );
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid || isAdminRole());
+
+      allow update, delete: if signedIn()
+        && (resource.data.userId == request.auth.uid || isAdminRole());
     }
+
     match /admin_notifications/{notificationId} {
-      // Allow Residents to create a notification when they submit a report
-      allow create: if request.auth != null;
-      // Allow only Admins to read and update (mark as read) these notifications
-      allow read, update, delete: if request.auth != null 
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+      allow create: if signedIn();
+      allow read, update, delete: if isAdminRole();
     }
   }
 }

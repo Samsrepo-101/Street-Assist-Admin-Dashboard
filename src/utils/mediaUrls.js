@@ -22,10 +22,25 @@ export function collectMediaUrls(data = {}, { includeProof = false } = {}) {
   add(data.photoUrls);
   add(data.imageUrls);
   add(data.images);
+  add(data.videoUrl);
+  add(data.videoURL);
+  add(data.video_url);
+  add(data.videoUrls);
+  add(data.videoURLs);
+  add(data.video_urls);
+  add(data.videos);
+  add(data.fileUrl);
+  add(data.fileURL);
+  add(data.file_url);
+  add(data.fileUrls);
+  add(data.file_urls);
   add(data.attachments);
   add(data.mediaUrls);
   add(data.media);
   add(data.media_url);
+  add(data.mediaUrl);
+  add(data.mediaURL);
+  add(data.media_urls);
   add(data.evidenceUrl);
   add(data.evidenceUrls);
 

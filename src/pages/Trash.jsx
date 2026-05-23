@@ -29,7 +29,7 @@ export default function Trash() {
 
   useEffect(() => {
     const unsub = subscribeToAnnouncements((allAnnouncements) => {
-      setAnnouncements(allAnnouncements.filter(a => (a.status === 'deleted' || a.deleted_at != null) && canAccessAnnouncement(a, adminRole)));
+      setAnnouncements(allAnnouncements.filter(a => (a.visibility_status === 'deleted' || a.deleted_at != null) && canAccessAnnouncement(a, adminRole)));
       setLoadingAnnouncements(false);
     });
     return unsub;

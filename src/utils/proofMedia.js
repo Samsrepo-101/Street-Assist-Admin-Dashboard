@@ -1,8 +1,8 @@
-export const PROOF_MEDIA_ACCEPT = 'image/jpeg,image/jpg,image/png,video/mp4,video/quicktime,video/webm';
+export const PROOF_MEDIA_ACCEPT = 'image/jpeg,image/jpg,image/png,video/mp4,video/quicktime,video/webm,video/3gpp,video/x-m4v';
 export const MAX_PROOF_VIDEO_SECONDS = 10;
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png']);
-const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
+const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp', 'video/x-m4v']);
 
 export function isVideoFile(file) {
   return VIDEO_TYPES.has(file?.type);
@@ -34,7 +34,7 @@ export function validateProofFile(file) {
     });
   }
 
-  return Promise.resolve(`${file.name} is not supported (JPG, PNG, MP4, MOV, or WebM only)`);
+  return Promise.resolve(`${file.name} is not supported (JPG, PNG, MP4, MOV, WebM, 3GP, or M4V only)`);
 }
 
 export async function filterValidProofFiles(files, onInvalid) {

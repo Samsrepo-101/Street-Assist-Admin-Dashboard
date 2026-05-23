@@ -213,7 +213,7 @@ export default function Announcements() {
   const filtered = useMemo(() => {
     // 1. Filter
     let result = announcements.filter(ann => {
-      if (ann.status === 'archived' || ann.status === 'deleted') return false;
+      if (ann.visibility_status === 'archived' || ann.visibility_status === 'deleted') return false;
       if (ann.deleted_at || ann.deletedAt) return false;
       if (ann.archived_at || ann.archivedAt) return false;
       if (!canAccessAnnouncement(ann, adminRole)) return false;
