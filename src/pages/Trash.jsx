@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { subscribeToReports, updateReportMeta, getStatusConfig } from '../api/reports.js';
+import { subscribeToReports, restoreDeletedReport, getStatusConfig } from '../api/reports.js';
 import { subscribeToAnnouncements, restoreDeletedAnnouncement, permanentlyDeleteAnnouncement } from '../api/announcement.js';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../api/firebase.js';
@@ -69,7 +69,7 @@ export default function Trash() {
         if (type === 'announcement') {
           await restoreDeletedAnnouncement(id);
         } else {
-          await updateReportMeta(id, { deleted_at: null });
+          await restoreDeletedReport(id);
         }
       }
       toast.success(`${selected.size} item(s) restored`);

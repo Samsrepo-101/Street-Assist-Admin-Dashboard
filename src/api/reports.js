@@ -10,6 +10,27 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import { toast } from 'sonner';
+import { collectMediaUrls } from '../utils/mediaUrls.js';
+
+function collectReportMediaUrls(data) {
+  return collectMediaUrls(data, { includeProof: false });
+}
+
+function getReportFeedVisibilityPayload(isHidden, hiddenAt = null, { isDeleted = false } = {}) {
+  return {
+    archived_at: isHidden ? hiddenAt : null,
+    deleted_at: isDeleted ? hiddenAt : null,
+    archived: isHidden,
+    isArchived: isHidden,
+    deleted: isDeleted,
+    isDeleted,
+    hidden: isHidden,
+    visible_to_residents: !isHidden,
+    visibleToResidents: !isHidden,
+    isPublicFeed: !isHidden,
+    is_public_feed: !isHidden,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Field mapping helper — matches EXACT Firestore field names
@@ -56,11 +77,8 @@ function mapReport(docSnap) {
   // Status — safe mapping of legacy/current values to required capitalized values
   const status = mapRawStatus(d.status);
 
-  // photoUrl is a single Cloudinary URL string (not an array)
-  const photoUrl = d.photoUrl ?? d.photoURL ?? d.image_url ?? '';
-
-  // Build an attachments array for the gallery component (single item if present)
-  const attachments = photoUrl ? [photoUrl] : [];
+  const attachments = collectReportMediaUrls(d);
+  const photoUrl = attachments[0] ?? '';
 
   return {
     // Document identity
@@ -241,22 +259,28 @@ export async function updateReportMeta(reportId, fields) {
 }
 
 export async function moveReportToTrash(reportId) {
+  const now = new Date().toISOString();
   const reportRef = doc(db, 'reports', reportId);
   await updateDoc(reportRef, {
-    deleted_at: new Date().toISOString(),
+    ...getReportFeedVisibilityPayload(true, now, { isDeleted: true }),
   });
 }
 
 export async function archiveReport(reportId) {
+  const now = new Date().toISOString();
   const reportRef = doc(db, 'reports', reportId);
   await updateDoc(reportRef, {
-    archived_at: new Date().toISOString(),
+    deleted_at: null,
+    ...getReportFeedVisibilityPayload(true, now, { isDeleted: false }),
   });
 }
 
 export async function restoreArchivedReport(reportId) {
   const reportRef = doc(db, 'reports', reportId);
-  await updateDoc(reportRef, {
-    archived_at: null,
-  });
+  await updateDoc(reportRef, getReportFeedVisibilityPayload(false));
+}
+
+export async function restoreDeletedReport(reportId) {
+  const reportRef = doc(db, 'reports', reportId);
+  await updateDoc(reportRef, getReportFeedVisibilityPayload(false));
 }

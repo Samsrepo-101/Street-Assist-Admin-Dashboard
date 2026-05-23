@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ImageIcon, Video, Eye, Play } from 'lucide-react';
-import { isVideoUrl } from '../../utils/proofMedia.js';
+import { isVideoUrl, normalizeMediaUrl } from '../../utils/proofMedia.js';
 import MediaLightbox from './MediaLightbox';
 
 export default function ProofMediaPreview({
@@ -10,7 +10,8 @@ export default function ProofMediaPreview({
   allowLightbox = true,
 }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const isVideo = isVideoUrl(src);
+  const mediaSrc = normalizeMediaUrl(src);
+  const isVideo = isVideoUrl(mediaSrc);
 
   const handleClick = (e) => {
     if (!allowLightbox) return;
@@ -23,7 +24,7 @@ export default function ProofMediaPreview({
     if (isVideo) {
       return (
         <video
-          src={src}
+          src={mediaSrc}
           className={`${className} transition-transform duration-300 group-hover:scale-105`}
           muted
           preload="metadata"
@@ -34,7 +35,7 @@ export default function ProofMediaPreview({
 
     return (
       <img
-        src={src}
+        src={mediaSrc}
         alt={alt || 'Proof media'}
         className={`${className} transition-transform duration-300 group-hover:scale-105`}
         onError={(event) => {
@@ -73,7 +74,7 @@ export default function ProofMediaPreview({
         <MediaLightbox
           open={lightboxOpen}
           onClose={() => setLightboxOpen(false)}
-          media={[src]}
+          media={[mediaSrc]}
         />
       )}
     </>

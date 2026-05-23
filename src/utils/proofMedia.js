@@ -8,10 +8,7 @@ export function isVideoFile(file) {
   return VIDEO_TYPES.has(file?.type);
 }
 
-export function isVideoUrl(url = '') {
-  const value = String(url).toLowerCase();
-  return value.includes('/video/upload/') || /\.(mp4|mov|webm)(\?|$)/.test(value);
-}
+export { isVideoUrl, normalizeMediaUrl } from './mediaUrls.js';
 
 export function getProofMediaLabel(count) {
   return `proof media item${count === 1 ? '' : 's'}`;

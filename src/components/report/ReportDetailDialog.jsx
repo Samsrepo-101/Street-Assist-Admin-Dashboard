@@ -14,7 +14,7 @@ import MapViewModal from '../shared/MapViewModal';
 import { Input } from '@/components/ui/input';
 import { uploadMediaToCloudinary } from '../../api/cloudinary.js';
 import ProofMediaPreview from '../shared/ProofMediaPreview';
-import { PROOF_MEDIA_ACCEPT, filterValidProofFiles, getProofMediaLabel, isVideoFile, isVideoUrl } from '../../utils/proofMedia.js';
+import { PROOF_MEDIA_ACCEPT, filterValidProofFiles, getProofMediaLabel, isVideoFile, isVideoUrl, normalizeMediaUrl } from '../../utils/proofMedia.js';
 import MediaLightbox from '../shared/MediaLightbox';
 
 // ---------------------------------------------------------------------------
@@ -24,26 +24,27 @@ function AttachmentGallery({ attachments }) {
   const [current, setCurrent] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
-  if (!attachments || attachments.length === 0) {
+  const normalizedAttachments = (attachments || []).map(normalizeMediaUrl).filter(Boolean);
+
+  if (normalizedAttachments.length === 0) {
     return (
       <div className="w-full h-32 rounded-lg border border-dashed border-border bg-muted/30 flex flex-col items-center justify-center gap-1.5">
         <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-        <p className="text-xs text-muted-foreground">No image attached</p>
+        <p className="text-xs text-muted-foreground">No image or video attached</p>
       </div>
     );
   }
 
   const prev = (e) => {
     e.stopPropagation();
-    setCurrent(i => (i - 1 + attachments.length) % attachments.length);
+    setCurrent(i => (i - 1 + normalizedAttachments.length) % normalizedAttachments.length);
   };
 
   const next = (e) => {
     e.stopPropagation();
-    setCurrent(i => (i + 1) % attachments.length);
+    setCurrent(i => (i + 1) % normalizedAttachments.length);
   };
-
-  const activeUrl = attachments[current];
+  const activeUrl = normalizedAttachments[current];
   const isVideo = isVideoUrl(activeUrl);
 
   return (
@@ -91,7 +92,7 @@ function AttachmentGallery({ attachments }) {
           )}
         </div>
 
-        {attachments.length > 1 && (
+        {normalizedAttachments.length > 1 && (
           <>
             <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white z-10 transition-transform active:scale-95">
               <ChevronLeft className="h-4 w-4" />
@@ -100,7 +101,7 @@ function AttachmentGallery({ attachments }) {
               <ChevronRight className="h-4 w-4" />
             </button>
             <span className="absolute bottom-2 right-2 text-[10px] font-semibold bg-black/50 text-white px-2 py-0.5 rounded-full z-10">
-              {current + 1} / {attachments.length}
+              {current + 1} / {normalizedAttachments.length}
             </span>
           </>
         )}
@@ -109,7 +110,7 @@ function AttachmentGallery({ attachments }) {
       <MediaLightbox
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
-        media={attachments}
+        media={normalizedAttachments}
         initialIndex={current}
       />
     </div>

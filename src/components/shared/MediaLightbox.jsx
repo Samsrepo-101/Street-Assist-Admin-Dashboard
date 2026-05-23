@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Download, ExternalLink, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
-import { isVideoUrl } from '../../utils/proofMedia.js';
+import { isVideoUrl, normalizeMediaUrl } from '../../utils/proofMedia.js';
 
 export default function MediaLightbox({
   open,
@@ -39,7 +39,9 @@ export default function MediaLightbox({
 
   if (!open || !media || media.length === 0) return null;
 
-  const mediaList = Array.isArray(media) ? media : [media];
+  const mediaList = (Array.isArray(media) ? media : [media])
+    .map(normalizeMediaUrl)
+    .filter(Boolean);
   const activeUrl = mediaList[current];
   const isVideo = isVideoUrl(activeUrl);
 

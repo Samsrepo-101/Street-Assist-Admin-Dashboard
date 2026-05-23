@@ -59,8 +59,8 @@ export default function Reports() {
   const filtered = useMemo(() => {
     return reports.filter(r => {
       // Exclude archived and soft-deleted reports
-      if (r.deleted_at) return false;
-      if (r.archived_at) return false;
+      if (r.deleted_at || r.deletedAt) return false;
+      if (r.archived_at || r.archivedAt || r.archived || r.isArchived || r.isPublicFeed === false) return false;
       if (!canAccessReport(r, adminRole)) return false;
 
       const matchSearch = !search ||
@@ -105,7 +105,8 @@ export default function Reports() {
       toast.success(`${selected.size} report(s) moved to trash`);
       setSelected(new Set());
     } catch (err) {
-      toast.error('Failed to move reports to trash');
+      console.error('Failed to move reports to trash:', err);
+      toast.error(err?.message || 'Failed to move reports to trash');
     }
   };
 
@@ -117,7 +118,8 @@ export default function Reports() {
       toast.success(`${selected.size} report(s) archived`);
       setSelected(new Set());
     } catch (err) {
-      toast.error('Failed to archive reports');
+      console.error('Failed to archive reports:', err);
+      toast.error(err?.message || 'Failed to archive reports');
     }
   };
 
@@ -131,7 +133,8 @@ export default function Reports() {
         return next;
       });
     } catch (err) {
-      toast.error('Failed to archive report');
+      console.error('Failed to archive report:', err);
+      toast.error(err?.message || 'Failed to archive report');
     }
   };
 

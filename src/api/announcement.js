@@ -68,6 +68,8 @@ function getResidentVisibilityPayload(isHidden, hiddenAt = null, { isDeleted = f
     showToResidents: !isHidden,
     resident_visible: !isHidden,
     residentVisible: !isHidden,
+    isPublicFeed: !isHidden,
+    is_public_feed: !isHidden,
     resident_visibility_synced: true,
   };
 }
