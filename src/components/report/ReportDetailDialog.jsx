@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Calendar, User, Phone, Map, ImageIcon, ChevronLeft, ChevronRight, Tag, Download, Loader2, X } from 'lucide-react';
+import { MapPin, Calendar, User, Phone, Map, ImageIcon, ChevronLeft, ChevronRight, Tag, Download, Loader2, X, Play, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { updateReportStatus, addReportStatusUpdate, updateReportMeta, enrichReportWithUser, getStatusConfig, REPORT_STATUSES } from '../../api/reports.js';
 import { exportReportPDF } from '../../utils/exportReportPDF.js';
@@ -14,13 +14,15 @@ import MapViewModal from '../shared/MapViewModal';
 import { Input } from '@/components/ui/input';
 import { uploadMediaToCloudinary } from '../../api/cloudinary.js';
 import ProofMediaPreview from '../shared/ProofMediaPreview';
-import { PROOF_MEDIA_ACCEPT, filterValidProofFiles, getProofMediaLabel, isVideoFile } from '../../utils/proofMedia.js';
+import { PROOF_MEDIA_ACCEPT, filterValidProofFiles, getProofMediaLabel, isVideoFile, isVideoUrl } from '../../utils/proofMedia.js';
+import MediaLightbox from '../shared/MediaLightbox';
 
 // ---------------------------------------------------------------------------
 // Attachment gallery — handles single photoUrl or array
 // ---------------------------------------------------------------------------
 function AttachmentGallery({ attachments }) {
   const [current, setCurrent] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   if (!attachments || attachments.length === 0) {
     return (
@@ -31,39 +33,85 @@ function AttachmentGallery({ attachments }) {
     );
   }
 
-  const prev = () => setCurrent(i => (i - 1 + attachments.length) % attachments.length);
-  const next = () => setCurrent(i => (i + 1) % attachments.length);
+  const prev = (e) => {
+    e.stopPropagation();
+    setCurrent(i => (i - 1 + attachments.length) % attachments.length);
+  };
+
+  const next = (e) => {
+    e.stopPropagation();
+    setCurrent(i => (i + 1) % attachments.length);
+  };
+
+  const activeUrl = attachments[current];
+  const isVideo = isVideoUrl(activeUrl);
 
   return (
     <div className="space-y-2">
-      <div className="relative rounded-lg overflow-hidden border border-border bg-muted/20">
-        <img
-          src={attachments[current]}
-          alt={`Attachment ${current + 1}`}
-          className="w-full h-52 object-cover"
-          onError={e => {
-            e.target.style.display = 'none';
-            e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
-          }}
-        />
+      <div
+        className="relative rounded-lg overflow-hidden border border-border bg-muted/20 group cursor-pointer"
+        onClick={() => setLightboxOpen(true)}
+      >
+        {isVideo ? (
+          <video
+            src={activeUrl}
+            className="w-full h-52 object-cover transition-transform duration-300 group-hover:scale-105"
+            muted
+            preload="metadata"
+            playsInline
+          />
+        ) : (
+          <img
+            src={activeUrl}
+            alt={`Attachment ${current + 1}`}
+            className="w-full h-52 object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={e => {
+              e.target.style.display = 'none';
+              e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
+            }}
+          />
+        )}
         <div className="hidden w-full h-52 items-center justify-center bg-muted/30 flex-col gap-1.5">
           <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-          <p className="text-xs text-muted-foreground">Image unavailable</p>
+          <p className="text-xs text-muted-foreground">Attachment unavailable</p>
         </div>
+
+        {/* Hover Overlay */}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-white">
+          {isVideo ? (
+            <div className="flex flex-col items-center gap-1.5">
+              <Play className="h-8 w-8 fill-white text-white drop-shadow-md animate-in zoom-in-75 duration-200" />
+              <span className="text-xs font-semibold drop-shadow">Click to Play Video</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1.5">
+              <Eye className="h-8 w-8 text-white drop-shadow-md animate-in zoom-in-75 duration-200" />
+              <span className="text-xs font-semibold drop-shadow">Click to Zoom</span>
+            </div>
+          )}
+        </div>
+
         {attachments.length > 1 && (
           <>
-            <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white">
+            <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white z-10 transition-transform active:scale-95">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white">
+            <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white z-10 transition-transform active:scale-95">
               <ChevronRight className="h-4 w-4" />
             </button>
-            <span className="absolute bottom-2 right-2 text-[10px] font-semibold bg-black/50 text-white px-2 py-0.5 rounded-full">
+            <span className="absolute bottom-2 right-2 text-[10px] font-semibold bg-black/50 text-white px-2 py-0.5 rounded-full z-10">
               {current + 1} / {attachments.length}
             </span>
           </>
         )}
       </div>
+
+      <MediaLightbox
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        media={attachments}
+        initialIndex={current}
+      />
     </div>
   );
 }
@@ -83,7 +131,6 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const [proofPreviews, setProofPreviews] = useState([]);
   const [existingProofImages, setExistingProofImages] = useState([]);
   const fileInputRef = useRef(null);
-
 
   useEffect(() => {
     const urls = proofFiles.map(file => URL.createObjectURL(file));
@@ -117,11 +164,11 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
-    const nextCanManageProof = newStatus === 'Resolved' || newStatus === 'Closed' || r.status === 'Resolved' || r.status === 'Closed';
+    const nextCanManageProof = newStatus === 'Resolved' || r.status === 'Resolved';
     if (!nextCanManageProof) {
       setProofFiles([]);
     }
-    if ((newStatus === 'Resolved' || newStatus === 'Closed') && status !== newStatus) {
+    if (newStatus === 'Resolved' && status !== newStatus) {
       if (fileInputRef.current) {
         fileInputRef.current.click();
       }
@@ -131,8 +178,8 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const handleProofSelection = async (event) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
-    if (status !== 'Resolved' && status !== 'Closed' && r.status !== 'Resolved' && r.status !== 'Closed') {
-      toast.error('Proof can only be added when the report is Resolved or Closed.');
+    if (status !== 'Resolved' && r.status !== 'Resolved') {
+      toast.error('Proof can only be added when the report is Resolved.');
       event.target.value = '';
       return;
     }
@@ -145,7 +192,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
   const r = enrichedReport;
   const isClosed = r.status === 'Closed';
-  const canManageProof = status === 'Resolved' || status === 'Closed' || r.status === 'Resolved' || r.status === 'Closed';
+  const canManageProof = status === 'Resolved' || r.status === 'Resolved';
   const statusCfg = getStatusConfig(r.status);
   const hasLocation = r.latitude != null && r.longitude != null;
 
@@ -156,7 +203,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
       let proofUrls = [];
       if (proofFiles.length > 0) {
         if (!canManageProof) {
-          toast.error('Proof can only be added when the report is Resolved or Closed.');
+          toast.error('Proof can only be added when the report is Resolved.');
           return;
         }
         toast.info(`Uploading ${proofFiles.length} proof media item(s)...`);
@@ -194,7 +241,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
       let proofUrls = [];
       if (proofFiles.length > 0) {
         if (!canManageProof) {
-          toast.error('Proof can only be added when the report is Resolved or Closed.');
+          toast.error('Proof can only be added when the report is Resolved.');
           return;
         }
         toast.info(`Uploading ${proofFiles.length} proof media item(s)...`);
@@ -514,7 +561,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                     size="sm"
                     onClick={() => {
                       if (!canManageProof) {
-                        toast.error('Set the report status to Resolved or Closed before adding proof.');
+                        toast.error('Set the report status to Resolved before adding proof.');
                         return;
                       }
                       fileInputRef.current?.click();
@@ -529,7 +576,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">
                   {!canManageProof && (
                     <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 border border-amber-200">
-                      Proof can be added only when the report is Resolved or Closed.
+                      Proof can be added only when the report is Resolved.
                     </p>
                   )}
                   {existingProofImages.length > 0 && (

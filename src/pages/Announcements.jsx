@@ -159,33 +159,12 @@ export default function Announcements() {
 
   const handleStatusSelection = (value) => {
     setNewStatus(value);
-    setEvidenceFiles([]);
-    setEvidencePreviews([]);
-    setExistingEvidenceImages(statusTarget?.evidenceUrls || (statusTarget?.evidenceUrl ? [statusTarget.evidenceUrl] : []));
-    setIsReplacingEvidence(false);
-    setClearEvidence(false);
-
-    if (value === 'Resolved' || value === 'Case Closed') {
-      const existing = statusTarget?.evidenceUrls || (statusTarget?.evidenceUrl ? [statusTarget.evidenceUrl] : []);
-      if (existing.length === 0) {
-        fileInputRef.current?.click();
-      }
-    }
   };
 
   const handleUpdateStatus = async () => {
     if (!statusTarget || !newStatus) return;
-    if (
-      (newStatus === 'Resolved' || newStatus === 'Case Closed') &&
-      evidenceFiles.length === 0 &&
-      (existingEvidenceImages.length === 0 || clearEvidence)
-    ) {
-      toast.error('Please select proof media before marking this announcement resolved or closed.');
-      return;
-    }
-
-    let uploadedUrls = [];
-    if (evidenceFiles.length > 0) {
+    const uploadedUrls = [];
+    if (isReplacingEvidence && evidenceFiles.length > 0) {
       setUploadingEvidence(true);
       try {
         toast.info('Uploading evidence media...');
@@ -333,7 +312,6 @@ export default function Announcements() {
               <SelectItem value="Reported">Reported</SelectItem>
               <SelectItem value="Verified by Police">Verified by Police</SelectItem>
               <SelectItem value="Search Ongoing">Search Ongoing</SelectItem>
-              <SelectItem value="Resolved">Resolved</SelectItem>
               <SelectItem value="Case Closed">Case Closed</SelectItem>
             </SelectContent>
           </Select>
@@ -400,7 +378,6 @@ export default function Announcements() {
               <SelectContent>
                 <SelectItem value="Verified by Police">Verified by Police</SelectItem>
                 <SelectItem value="Search Ongoing">Search Ongoing</SelectItem>
-                <SelectItem value="Resolved">Resolved</SelectItem>
                 <SelectItem value="Case Closed">Case Closed</SelectItem>
               </SelectContent>
             </Select>
@@ -415,7 +392,7 @@ export default function Announcements() {
             onChange={handleEvidenceSelected}
           />
 
-          {(newStatus === 'Resolved' || newStatus === 'Case Closed') && (
+          {newStatus === 'Case Closed' && (
             <div className="rounded-xl border border-border bg-slate-50 p-3 text-sm text-slate-700 space-y-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>

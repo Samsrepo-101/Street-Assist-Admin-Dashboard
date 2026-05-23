@@ -201,7 +201,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
   };
 
   const isSubmitting = saving || uploading;
-  const isClosed = announcement && (announcement.status === 'Case Closed' || announcement.status === 'Resolved');
+  const isClosed = announcement && announcement.status === 'Case Closed';
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -407,8 +407,11 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
                           <ProofMediaPreview src={src} alt={`Existing proof ${i+1}`} />
                           <button
                             type="button"
-                            onClick={() => setExistingProofImages(prev => prev.filter((_, idx) => idx !== i))}
-                            className="absolute top-1 right-1 bg-black/60 hover:bg-black/85 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExistingProofImages(prev => prev.filter((_, idx) => idx !== i));
+                            }}
+                            className="absolute top-1 right-1 bg-black/60 hover:bg-black/85 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] transition-colors z-10"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>

@@ -71,4 +71,22 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); }
+
+  /* Better tap targets on mobile */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
+
+  /* Dialogs: ensure they don't overflow on very small screens */
+  [data-radix-dialog-content] {
+    max-height: 92dvh;
+    overflow-y: auto;
+  }
+}
+
+@layer utilities {
+  /* Utility for hidden-on-mobile but visible on sm+ */
+  .mobile-hidden {
+    @apply hidden sm:block;
+  }
 }

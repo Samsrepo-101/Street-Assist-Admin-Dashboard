@@ -26,14 +26,13 @@ import { toast } from 'sonner';
 export function mapRawAnnouncementStatus(status) {
   if (!status) return 'Reported';
   const s = String(status).trim();
-  if (s === 'Reported' || s === 'Verified by Police' || s === 'Search Ongoing' || s === 'Resolved' || s === 'Case Closed') {
+  if (s === 'Reported' || s === 'Verified by Police' || s === 'Search Ongoing' || s === 'Case Closed') {
     return s;
   }
   const lower = s.toLowerCase();
   if (lower === 'verified' || lower === 'verified by police' || lower === 'verified_by_police') return 'Verified by Police';
   if (lower === 'ongoing' || lower === 'search ongoing' || lower === 'search_ongoing') return 'Search Ongoing';
-  if (lower === 'resolved') return 'Resolved';
-  if (lower === 'closed' || lower === 'case closed' || lower === 'case_closed') return 'Case Closed';
+  if (lower === 'resolved' || lower === 'closed' || lower === 'case closed' || lower === 'case_closed') return 'Case Closed';
   if (lower === 'open') return 'Reported';
   return 'Reported';
 }

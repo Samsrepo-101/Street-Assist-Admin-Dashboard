@@ -135,7 +135,7 @@ export default function AnnouncementCard({ announcement, onViewComments, onUpdat
               >
                 <MessageCircle className="h-3.5 w-3.5 mr-1" /> Comments
               </Button>
-              {announcement.status !== 'Case Closed' && announcement.status !== 'Resolved' && (
+              {announcement.status !== 'Case Closed' && (
                 <Button
                   type="button"
                   variant="outline"
