@@ -9,20 +9,21 @@ function cn(...inputs) {
 
 const SelectContext = React.createContext(null);
 
-export function Select({ value, onValueChange, children, defaultValue, className }) {
+export function Select({ value, onValueChange, children, defaultValue, className, disabled = false }) {
   const [open, setOpen] = useState(false);
   const [internalValue, setInternalValue] = useState(defaultValue ?? '');
   const controlled = value !== undefined;
   const currentValue = controlled ? value : internalValue;
 
   const handleSelect = (val) => {
+    if (disabled) return;
     if (!controlled) setInternalValue(val);
     onValueChange?.(val);
     setOpen(false);
   };
 
   return (
-    <SelectContext.Provider value={{ open, setOpen, value: currentValue, onSelect: handleSelect }}>
+    <SelectContext.Provider value={{ open, setOpen, value: currentValue, onSelect: handleSelect, disabled }}>
       <div className={cn('relative', className)}>{children}</div>
     </SelectContext.Provider>
   );
@@ -37,7 +38,11 @@ export function SelectTrigger({ className, children, ...props }) {
         'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
         className
       )}
-      onClick={() => ctx.setOpen(o => !o)}
+      disabled={ctx.disabled || props.disabled}
+      onClick={() => {
+        if (ctx.disabled || props.disabled) return;
+        ctx.setOpen(o => !o);
+      }}
       {...props}
     >
       {children}
@@ -89,10 +94,14 @@ export function SelectItem({ className, value, children, ...props }) {
     <div
       className={cn(
         'relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+        ctx.disabled && 'pointer-events-none cursor-not-allowed opacity-50',
         isSelected && 'bg-accent text-accent-foreground',
         className
       )}
-      onClick={() => ctx.onSelect(value)}
+      onClick={() => {
+        if (ctx.disabled) return;
+        ctx.onSelect(value);
+      }}
       {...props}
     >
       {isSelected && (

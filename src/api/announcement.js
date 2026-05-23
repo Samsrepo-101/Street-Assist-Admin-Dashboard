@@ -47,6 +47,13 @@ function getResidentVisibilityPayload(isArchived, archivedAt = null) {
     visible_to_residents: !isArchived,
     visibleToResidents: !isArchived,
     isVisible: !isArchived,
+    visible: !isArchived,
+    active: !isArchived,
+    isActive: !isArchived,
+    published: !isArchived,
+    isPublished: !isArchived,
+    public: !isArchived,
+    isPublic: !isArchived,
   };
 }
 
@@ -97,6 +104,13 @@ export function subscribeToAnnouncements(callback) {
           visible_to_residents: data.visible_to_residents ?? !isArchived,
           visibleToResidents: data.visibleToResidents ?? data.visible_to_residents ?? !isArchived,
           isVisible: data.isVisible ?? data.visible_to_residents ?? !isArchived,
+          visible: data.visible ?? !isArchived,
+          active: data.active ?? !isArchived,
+          isActive: data.isActive ?? !isArchived,
+          published: data.published ?? !isArchived,
+          isPublished: data.isPublished ?? !isArchived,
+          public: data.public ?? !isArchived,
+          isPublic: data.isPublic ?? !isArchived,
           resident_visibility_synced:
             (!isArchived || data.archivedAt != null) &&
             data.archived === isArchived &&
@@ -104,7 +118,14 @@ export function subscribeToAnnouncements(callback) {
             data.is_archived === isArchived &&
             data.visible_to_residents === !isArchived &&
             data.visibleToResidents === !isArchived &&
-            data.isVisible === !isArchived,
+            data.isVisible === !isArchived &&
+            data.visible === !isArchived &&
+            data.active === !isArchived &&
+            data.isActive === !isArchived &&
+            data.published === !isArchived &&
+            data.isPublished === !isArchived &&
+            data.public === !isArchived &&
+            data.isPublic === !isArchived,
         };
       });
 
@@ -171,12 +192,44 @@ export function subscribeToComments(announcementId, callback) {
   );
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
-    const comments = snapshot.docs.map((document) => ({
-      id: document.id,
-      userId: document.data().userId ?? '',
-      text: document.data().text ?? '',
-      timestamp: document.data().timestamp ?? null,
-    }));
+    const comments = snapshot.docs.map((document) => {
+      const data = document.data();
+      const latitude =
+        data.latitude ??
+        data.lat ??
+        data.location?.latitude ??
+        data.location?.lat ??
+        data.locationData?.latitude ??
+        data.locationData?.lat ??
+        null;
+      const longitude =
+        data.longitude ??
+        data.lng ??
+        data.lon ??
+        data.location?.longitude ??
+        data.location?.lng ??
+        data.location?.lon ??
+        data.locationData?.longitude ??
+        data.locationData?.lng ??
+        data.locationData?.lon ??
+        null;
+
+      return {
+        id: document.id,
+        userId: data.userId ?? data.author_name ?? data.authorName ?? '',
+        text: data.text ?? data.content ?? '',
+        timestamp: data.timestamp ?? null,
+        latitude: latitude == null ? null : Number(latitude),
+        longitude: longitude == null ? null : Number(longitude),
+        location_address:
+          data.location_address ??
+          data.locationAddress ??
+          data.address ??
+          data.location?.address ??
+          data.locationData?.address ??
+          '',
+      };
+    });
 
     callback(comments);
   });

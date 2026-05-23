@@ -113,6 +113,13 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
       return;
     }
 
+    const category = forcedCategory || form.category;
+    if (forcedCategory && form.category !== forcedCategory) {
+      setForm(p => ({ ...p, category: forcedCategory }));
+      toast.error(`This admin can only create ${forcedCategory.toLowerCase()} announcements`);
+      return;
+    }
+
     setSaving(true);
     let finalImageUrl = announcement ? (announcement.imageUrl || announcement.image_url || '') : '';
 
@@ -162,7 +169,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
       if (announcement) {
         await updateAnnouncement(announcement.id, {
           ...form,
-          category: forcedCategory || form.category,
+          category,
           imageUrl: finalImageUrl,
           image_url: finalImageUrl,
           evidenceUrl: finalEvidenceUrls[0] || '',
@@ -172,7 +179,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
       } else {
         await createAnnouncement({
           ...form,
-          category: forcedCategory || form.category,
+          category,
           status: 'Reported',
           imageUrl: finalImageUrl,
           evidenceUrl: finalEvidenceUrls[0] || '',
@@ -241,13 +248,19 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
             </div>
             <div>
               <Label>Category</Label>
-              <Select value={form.category} onValueChange={v => update('category', v)} disabled={isClosed || !!forcedCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Missing Person">Missing Person</SelectItem>
-                  <SelectItem value="Missing Animal">Missing Animal</SelectItem>
-                </SelectContent>
-              </Select>
+              {forcedCategory ? (
+                <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted/40 px-3 py-2 text-sm font-medium text-foreground">
+                  {forcedCategory}
+                </div>
+              ) : (
+                <Select value={form.category} onValueChange={v => update('category', v)} disabled={isClosed}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Missing Person">Missing Person</SelectItem>
+                    <SelectItem value="Missing Animal">Missing Animal</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div>
               <Label>Sex</Label>

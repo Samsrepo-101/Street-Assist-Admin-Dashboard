@@ -218,6 +218,13 @@ describe('Announcement archive resident visibility', () => {
         visible_to_residents: false,
         visibleToResidents: false,
         isVisible: false,
+        visible: false,
+        active: false,
+        isActive: false,
+        published: false,
+        isPublished: false,
+        public: false,
+        isPublic: false,
       })
     );
 
@@ -234,6 +241,13 @@ describe('Announcement archive resident visibility', () => {
         visible_to_residents: true,
         visibleToResidents: true,
         isVisible: true,
+        visible: true,
+        active: true,
+        isActive: true,
+        published: true,
+        isPublished: true,
+        public: true,
+        isPublic: true,
       })
     );
   });
@@ -261,6 +275,13 @@ describe('Announcement archive resident visibility', () => {
         visible_to_residents: false,
         visibleToResidents: false,
         isVisible: false,
+        visible: false,
+        active: false,
+        isActive: false,
+        published: false,
+        isPublished: false,
+        public: false,
+        isPublic: false,
       })
     );
   });
@@ -285,6 +306,13 @@ describe('Announcement archive resident visibility', () => {
         visible_to_residents: false,
         visibleToResidents: false,
         isVisible: false,
+        visible: false,
+        active: false,
+        isActive: false,
+        published: false,
+        isPublished: false,
+        public: false,
+        isPublic: false,
       })
     );
   });

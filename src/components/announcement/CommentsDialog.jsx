@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { subscribeToComments, postComment } from '../../api/announcement.js';
 import { useAuth } from '../../lib/AuthContext';
 import { format } from 'date-fns';
-import { Send, MessageCircle } from 'lucide-react';
+import { Send, MessageCircle, MapPin } from 'lucide-react';
+import MapViewModal from '../shared/MapViewModal';
 
 export default function CommentsDialog({ announcement, open, onClose }) {
   const [newComment, setNewComment] = useState('');
+  const [mapTarget, setMapTarget] = useState(null);
   const { currentUser } = useAuth();
 
   const [comments, setComments] = useState([]);
@@ -57,15 +59,37 @@ export default function CommentsDialog({ announcement, open, onClose }) {
         <div className="space-y-3 max-h-64 overflow-y-auto">
           {comments.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">No comments yet</p>
-          ) : comments.map(c => (
-            <div key={c.id} className="bg-muted/50 rounded-lg p-3">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-medium">{c.userId}</span>
-                <span className="text-xs text-muted-foreground">{c.timestamp?.toDate ? format(c.timestamp.toDate(), 'MMM dd, hh:mm a') : ''}</span>
+          ) : comments.map(c => {
+            const hasLocation =
+              Number.isFinite(Number(c.latitude)) &&
+              Number.isFinite(Number(c.longitude));
+            const latitude = Number(c.latitude);
+            const longitude = Number(c.longitude);
+            const address = c.location_address || (hasLocation ? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` : '');
+
+            return (
+              <div key={c.id} className="bg-muted/50 rounded-lg p-3">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium">{c.userId}</span>
+                  <span className="text-xs text-muted-foreground">{c.timestamp?.toDate ? format(c.timestamp.toDate(), 'MMM dd, hh:mm a') : ''}</span>
+                </div>
+                <p className="text-sm text-foreground">{c.text}</p>
+                {hasLocation && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-2 text-xs text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                    <span className="min-w-0 flex-1 truncate">{address}</span>
+                    <button
+                      type="button"
+                      onClick={() => setMapTarget({ ...c, latitude, longitude, location_address: address })}
+                      className="font-semibold text-primary hover:underline"
+                    >
+                      View Map
+                    </button>
+                  </div>
+                )}
               </div>
-              <p className="text-sm text-foreground">{c.text}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {announcement?.status === 'Case Closed' || announcement?.status === 'closed' || announcement?.status === 'Closed' ? (
@@ -86,6 +110,14 @@ export default function CommentsDialog({ announcement, open, onClose }) {
           </div>
         )}
       </DialogContent>
+      <MapViewModal
+        open={!!mapTarget}
+        onClose={() => setMapTarget(null)}
+        latitude={mapTarget?.latitude}
+        longitude={mapTarget?.longitude}
+        title="Resident location"
+        address={mapTarget?.location_address}
+      />
     </Dialog>
   );
 }
