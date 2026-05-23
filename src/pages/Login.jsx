@@ -80,12 +80,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: 'linear-gradient(135deg, hsl(213 55% 10%) 0%, hsl(213 50% 16%) 50%, hsl(213 45% 20%) 100%)' }}
+      style={{ background: 'linear-gradient(135deg, hsl(220 33% 98%) 0%, hsl(224 82% 96%) 50%, hsl(224 82% 90%) 100%)' }}
     >
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-white/10 p-8">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-border p-8">
         {/* App title */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 h-16 w-16 rounded-xl overflow-hidden">
+          <div className="mx-auto mb-4 h-16 w-16 rounded-xl overflow-hidden shadow-md">
             <img src="/streetassist.png" alt="StreetAssist" className="h-full w-full object-cover" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Street Assist Admin</h1>
@@ -105,10 +105,10 @@ export default function Login() {
                     key={role.value}
                     type="button"
                     onClick={() => setSelectedRole(role.value)}
-                    className={`rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
+                    className={`rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-1 ${
                       active
-                        ? 'border-blue-600 bg-blue-50 text-blue-800 shadow-sm'
-                        : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50/50'
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-primary/45 hover:bg-primary/5'
                     }`}
                     aria-pressed={active}
                   >
@@ -134,7 +134,7 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
               placeholder="admin@example.com"
             />
           </div>
@@ -154,7 +154,7 @@ export default function Login() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
               placeholder="••••••••"
             />
           </div>
@@ -170,8 +170,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition"
-            style={{ background: 'linear-gradient(135deg, hsl(213 90% 48%), hsl(213 80% 38%))' }}
+            className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition shadow-md shadow-primary/10"
           >
             {loading && (
               <svg

@@ -8,39 +8,39 @@
   :root {
     --font-inter: 'Inter', sans-serif;
 
-    /* Light Blue & White Premium Palette (Screenshot Brand Blue Theme) */
-    --background: 220 33% 98%;      /* Very clean, extremely light light-grey/blue background */
-    --foreground: 224 60% 10%;      /* Deep elegant slate navy for premium contrast */
+    /* Light Blue & White Premium Palette (Royal Blue #4169E1 Theme) */
+    --background: 225 30% 99%;      /* Clean, bright off-white background with a hint of royal blue */
+    --foreground: 225 40% 15%;      /* Clean charcoal text */
 
-    --card: 0 0% 100%;              /* Pure White for modern clean cards */
-    --card-foreground: 224 60% 10%;
+    --card: 0 0% 100%;              /* Pure White for clean cards */
+    --card-foreground: 225 40% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 60% 10%;
+    --popover-foreground: 225 40% 15%;
 
-    /* Primary: Vibrant Royal Blue (Matches the screenshot #3B6EEB perfectly!) */
-    --primary: 224 82% 56%;         /* Dynamic vibrant blue from image */
+    /* Primary: Royal Blue (#4169E1) */
+    --primary: 225 73% 57%;         /* Premium Royal Blue #4169E1 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 224 40% 95%;       /* Light soft slate blue background */
-    --secondary-foreground: 224 82% 40%;
+    --secondary: 225 40% 96%;       /* Light soft Royal Blue background */
+    --secondary-foreground: 225 73% 40%;
 
-    --muted: 220 20% 95%;           /* Subtle grey-blue */
-    --muted-foreground: 220 15% 45%;
+    --muted: 225 20% 96%;           /* Clean subtle royal blue-tinted grey */
+    --muted-foreground: 225 15% 45%;
 
-    --accent: 224 82% 56%;
+    --accent: 225 73% 57%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 82% 57%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 25% 91%;          /* Soft clean border */
-    --input: 220 25% 91%;
-    --ring: 224 82% 56%;
+    --border: 225 25% 92%;          /* Soft clean border */
+    --input: 225 25% 92%;
+    --ring: 225 73% 57%;
 
-    --chart-1: 224 82% 56%;
-    --chart-2: 210 75% 48%;
-    --chart-3: 235 75% 62%;
+    --chart-1: 225 73% 57%;
+    --chart-2: 210 70% 50%;
+    --chart-3: 240 70% 60%;
     --chart-4: 0 82% 57%;
     --chart-5: 262 83% 58%;
 
@@ -48,13 +48,13 @@
 
     /* Sidebar: Clean White & Soft Royal Blue Accents */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 224 50% 14%;
-    --sidebar-primary: 224 82% 56%;
+    --sidebar-foreground: 225 40% 16%;
+    --sidebar-primary: 225 73% 57%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 40% 96%;
-    --sidebar-accent-foreground: 224 82% 40%;
-    --sidebar-border: 220 20% 94%;
-    --sidebar-ring: 224 82% 56%;
+    --sidebar-accent: 225 40% 97%;
+    --sidebar-accent-foreground: 225 73% 40%;
+    --sidebar-border: 225 20% 95%;
+    --sidebar-ring: 225 73% 57%;
   }
 }
 
