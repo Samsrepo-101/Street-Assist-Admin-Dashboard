@@ -19,15 +19,16 @@ const navItems = [
 ];
 
 const S = {
-  bg:           'hsl(213 55% 10%)',
-  border:       'hsl(213 45% 16%)',
-  labelColor:   'hsl(213 25% 42%)',
-  inactiveNav:  'hsl(213 35% 58%)',
-  activeBg:     'linear-gradient(90deg, hsl(213 80% 58% / 0.18), hsl(213 80% 58% / 0.06))',
-  activeColor:  'hsl(213 80% 68%)',
-  activeBorder: 'hsl(213 80% 58%)',
-  logoutColor:  'hsl(213 25% 42%)',
-  subtitleColor:'hsl(213 60% 65%)',
+  bg:           'hsl(0 0% 100%)',
+  border:       'hsl(225 20% 95%)',
+  labelColor:   'hsl(225 15% 50%)',
+  inactiveNav:  'hsl(225 12% 45%)',
+  activeBg:     'hsl(225 73% 57% / 0.08)',
+  activeColor:  'hsl(225 73% 57%)',
+  activeBorder: 'hsl(225 73% 57%)',
+  logoutColor:  'hsl(225 15% 50%)',
+  subtitleColor:'hsl(225 73% 50%)',
+  hoverColor:   'hsl(225 73% 57%)',
 };
 
 export default function Sidebar({ open, onClose }) {
@@ -133,12 +134,12 @@ export default function Sidebar({ open, onClose }) {
         <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: S.border }}>
           <img src="/streetassist.png" alt="StreetAssist" className="h-9 w-9 rounded-lg shrink-0 object-cover" />
           <div className="min-w-0">
-            <h1 className="text-sm font-bold text-white leading-tight">StreetAssist</h1>
+            <h1 className="text-sm font-bold text-gray-900 leading-tight">StreetAssist</h1>
             <p className="text-[10px] font-medium truncate" style={{ color: S.subtitleColor }}>
               Camarines Norte · Admin
             </p>
           </div>
-          <button onClick={onClose} className="ml-auto lg:hidden text-white/40 hover:text-white shrink-0">
+          <button onClick={onClose} className="ml-auto lg:hidden text-gray-400 hover:text-gray-600 shrink-0">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -164,7 +165,7 @@ export default function Sidebar({ open, onClose }) {
                     ? { background: S.activeBg, color: S.activeColor, borderLeft: `2px solid ${S.activeBorder}` }
                     : { color: S.inactiveNav, borderLeft: '2px solid transparent' }
                 }
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#fff'; }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = S.hoverColor; }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = S.inactiveNav; }}
               >
                 <div className="relative shrink-0">
@@ -209,7 +210,7 @@ export default function Sidebar({ open, onClose }) {
                     ? { background: S.activeBg, color: S.activeColor, borderLeft: `2px solid ${S.activeBorder}` }
                     : { color: S.inactiveNav, borderLeft: '2px solid transparent' }
                 }
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#fff'; }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = S.hoverColor; }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = S.inactiveNav; }}
               >
                 <Icon className="h-4 w-4 shrink-0" />
