@@ -65,18 +65,26 @@ const statusColors = {
 export default function AnnouncementCard({ announcement, onViewComments, onUpdateStatus, onDelete, onArchive, onEdit }) {
   const [mapOpen, setMapOpen] = useState(false);
   const hasLocation = announcement.latitude && announcement.longitude;
+  const mediaImages = Array.isArray(announcement.imageUrls) && announcement.imageUrls.length > 0
+    ? announcement.imageUrls
+    : (announcement.imageUrl || announcement.image_url) ? [announcement.imageUrl || announcement.image_url] : [];
+  const mediaVideo = announcement.videoUrl || announcement.video_url || '';
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow border border-border">
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row">
-          {(announcement.imageUrl || announcement.image_url) && (
+          {(mediaImages.length > 0 || mediaVideo) && (
             <div className="md:w-52 h-52 md:h-auto shrink-0">
-              <img
-                src={announcement.imageUrl || announcement.image_url}
-                alt={announcement.title}
-                className="w-full h-full object-cover"
-              />
+              {mediaVideo ? (
+                <video src={mediaVideo} className="w-full h-full object-cover" controls muted preload="metadata" />
+              ) : (
+                <img
+                  src={mediaImages[0]}
+                  alt={announcement.title}
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
           )}
           <div className="flex-1 p-5 space-y-3">

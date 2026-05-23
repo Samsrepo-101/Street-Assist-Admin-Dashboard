@@ -192,6 +192,12 @@ export function subscribeToAnnouncements(callback) {
           longitude: data.longitude ?? null,
           image_url: data.image_url ?? '',
           imageUrl: data.imageUrl ?? data.image_url ?? '',
+          imageUrls: Array.isArray(data.imageUrls)
+            ? data.imageUrls
+            : Array.isArray(data.images)
+              ? data.images
+              : (data.imageUrl || data.image_url) ? [data.imageUrl ?? data.image_url] : [],
+          videoUrl: data.videoUrl ?? data.video_url ?? '',
           evidenceUrl: data.evidenceUrl ?? '',
           evidenceUrls: data.evidenceUrls ?? (data.evidenceUrl ? [data.evidenceUrl] : []),
           status: caseStatus,
