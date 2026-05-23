@@ -37,28 +37,85 @@ export function mapRawAnnouncementStatus(status) {
   return 'Reported';
 }
 
-function getResidentVisibilityPayload(isArchived, archivedAt = null) {
+const syncedHiddenAnnouncementIds = new Set();
+
+function getResidentVisibilityPayload(isHidden, hiddenAt = null, { isDeleted = false } = {}) {
   return {
-    archived_at: archivedAt,
-    archivedAt,
-    archived: isArchived,
-    isArchived,
-    is_archived: isArchived,
-    visible_to_residents: !isArchived,
-    visibleToResidents: !isArchived,
-    isVisible: !isArchived,
-    visible: !isArchived,
-    active: !isArchived,
-    isActive: !isArchived,
-    published: !isArchived,
-    isPublished: !isArchived,
-    public: !isArchived,
-    isPublic: !isArchived,
+    archived_at: isHidden ? hiddenAt : null,
+    archivedAt: isHidden ? hiddenAt : null,
+    archived: isHidden,
+    isArchived: isHidden,
+    is_archived: isHidden,
+    deleted: isDeleted,
+    isDeleted,
+    is_deleted: isDeleted,
+    hidden: isHidden,
+    is_hidden: isHidden,
+    isHidden: isHidden,
+    hidden_from_residents: isHidden,
+    hiddenFromResidents: isHidden,
+    visible_to_residents: !isHidden,
+    visibleToResidents: !isHidden,
+    isVisible: !isHidden,
+    visible: !isHidden,
+    active: !isHidden,
+    isActive: !isHidden,
+    published: !isHidden,
+    isPublished: !isHidden,
+    public: !isHidden,
+    isPublic: !isHidden,
+    show_to_residents: !isHidden,
+    showToResidents: !isHidden,
+    resident_visible: !isHidden,
+    residentVisible: !isHidden,
+    resident_visibility_synced: true,
   };
 }
 
-function needsHiddenVisibilitySync(announcement) {
-  return !announcement?.resident_visibility_synced;
+function isAnnouncementHiddenFromResidents(data) {
+  return !!(data?.archived_at || data?.deleted_at);
+}
+
+function needsResidentVisibilitySync(data) {
+  if (!isAnnouncementHiddenFromResidents(data)) return false;
+  if (data.resident_visibility_synced === true) return false;
+
+  const isHidden = true;
+  return (
+    data.visible_to_residents !== false ||
+    data.visibleToResidents !== false ||
+    data.isVisible !== false ||
+    data.visible !== false ||
+    data.active !== false ||
+    data.isActive !== false ||
+    data.published !== false ||
+    data.isPublished !== false ||
+    data.public !== false ||
+    data.isPublic !== false ||
+    data.archived !== isHidden ||
+    data.isArchived !== isHidden ||
+    data.is_archived !== isHidden ||
+    data.hidden !== isHidden ||
+    data.show_to_residents !== false ||
+    data.showToResidents !== false
+  );
+}
+
+function queueResidentVisibilitySync(announcementId, data) {
+  if (!announcementId || !needsResidentVisibilitySync(data)) return;
+  if (syncedHiddenAnnouncementIds.has(announcementId)) return;
+
+  syncedHiddenAnnouncementIds.add(announcementId);
+  const hiddenAt = data.archived_at || data.deleted_at;
+  const isDeleted = !!data.deleted_at;
+
+  updateDoc(
+    doc(db, 'announcements', announcementId),
+    getResidentVisibilityPayload(true, hiddenAt, { isDeleted })
+  ).catch((error) => {
+    console.error('Failed to sync announcement resident visibility:', error);
+    syncedHiddenAnnouncementIds.delete(announcementId);
+  });
 }
 
 export function subscribeToAnnouncements(callback) {
@@ -72,7 +129,8 @@ export function subscribeToAnnouncements(callback) {
     (snapshot) => {
       const announcements = snapshot.docs.map((document) => {
         const data = document.data();
-        const isArchived = !!data.archived_at || !!data.deleted_at;
+        queueResidentVisibilitySync(document.id, data);
+        const isArchived = isAnnouncementHiddenFromResidents(data);
 
         return {
           id: document.id,
@@ -111,21 +169,7 @@ export function subscribeToAnnouncements(callback) {
           isPublished: data.isPublished ?? !isArchived,
           public: data.public ?? !isArchived,
           isPublic: data.isPublic ?? !isArchived,
-          resident_visibility_synced:
-            (!isArchived || data.archivedAt != null) &&
-            data.archived === isArchived &&
-            data.isArchived === isArchived &&
-            data.is_archived === isArchived &&
-            data.visible_to_residents === !isArchived &&
-            data.visibleToResidents === !isArchived &&
-            data.isVisible === !isArchived &&
-            data.visible === !isArchived &&
-            data.active === !isArchived &&
-            data.isActive === !isArchived &&
-            data.published === !isArchived &&
-            data.isPublished === !isArchived &&
-            data.public === !isArchived &&
-            data.isPublic === !isArchived,
+          resident_visibility_synced: data.resident_visibility_synced === true && !needsResidentVisibilitySync(data),
         };
       });
 
@@ -278,9 +322,10 @@ export async function deleteAnnouncement(announcementId) {
 }
 
 export async function moveAnnouncementToTrash(announcementId) {
+  const now = new Date().toISOString();
   await updateDoc(doc(db, 'announcements', announcementId), {
-    deleted_at: new Date().toISOString(),
-    ...getResidentVisibilityPayload(true, new Date().toISOString()),
+    deleted_at: now,
+    ...getResidentVisibilityPayload(true, now, { isDeleted: true }),
   });
 }
 
@@ -296,7 +341,11 @@ export async function permanentlyDeleteAnnouncement(announcementId) {
 }
 
 export async function archiveAnnouncement(announcementId) {
-  await updateDoc(doc(db, 'announcements', announcementId), getResidentVisibilityPayload(true, new Date().toISOString()));
+  const now = new Date().toISOString();
+  await updateDoc(
+    doc(db, 'announcements', announcementId),
+    getResidentVisibilityPayload(true, now, { isDeleted: false })
+  );
 }
 
 export async function restoreArchivedAnnouncement(announcementId) {
@@ -304,11 +353,15 @@ export async function restoreArchivedAnnouncement(announcementId) {
 }
 
 export async function syncArchivedAnnouncementVisibility(announcement) {
-  if (!announcement?.id || (!announcement.archived_at && !announcement.deleted_at) || !needsHiddenVisibilitySync(announcement)) return;
+  if (!announcement?.id || !isAnnouncementHiddenFromResidents(announcement)) return;
+  if (announcement.resident_visibility_synced) return;
+
+  const hiddenAt = announcement.archived_at || announcement.deleted_at;
+  const isDeleted = !!announcement.deleted_at;
 
   await updateDoc(
     doc(db, 'announcements', announcement.id),
-    getResidentVisibilityPayload(true, announcement.archived_at || announcement.deleted_at)
+    getResidentVisibilityPayload(true, hiddenAt, { isDeleted })
   );
 }
 

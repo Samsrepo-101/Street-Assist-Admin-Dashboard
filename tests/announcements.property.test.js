@@ -215,6 +215,7 @@ describe('Announcement archive resident visibility', () => {
         archived: true,
         isArchived: true,
         is_archived: true,
+        hidden: true,
         visible_to_residents: false,
         visibleToResidents: false,
         isVisible: false,
@@ -225,6 +226,8 @@ describe('Announcement archive resident visibility', () => {
         isPublished: false,
         public: false,
         isPublic: false,
+        show_to_residents: false,
+        resident_visibility_synced: true,
       })
     );
 
@@ -303,6 +306,9 @@ describe('Announcement archive resident visibility', () => {
         archived: true,
         isArchived: true,
         is_archived: true,
+        deleted: true,
+        isDeleted: true,
+        hidden: true,
         visible_to_residents: false,
         visibleToResidents: false,
         isVisible: false,
@@ -313,6 +319,8 @@ describe('Announcement archive resident visibility', () => {
         isPublished: false,
         public: false,
         isPublic: false,
+        show_to_residents: false,
+        resident_visibility_synced: true,
       })
     );
   });
