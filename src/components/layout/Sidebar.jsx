@@ -23,9 +23,9 @@ const S = {
   border:       'hsl(225 20% 95%)',
   labelColor:   'hsl(225 15% 50%)',
   inactiveNav:  'hsl(225 12% 45%)',
-  activeBg:     'hsl(225 73% 57% / 0.08)',
-  activeColor:  'hsl(225 73% 57%)',
-  activeBorder: 'hsl(225 73% 57%)',
+  activeBg:     'hsl(225 73% 57%)',
+  activeColor:  '#ffffff',
+  activeBorder: 'transparent',
   logoutColor:  'hsl(225 15% 50%)',
   subtitleColor:'hsl(225 73% 50%)',
   hoverColor:   'hsl(225 73% 57%)',
@@ -162,8 +162,8 @@ export default function Sidebar({ open, onClose }) {
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
                 style={
                   isActive
-                    ? { background: S.activeBg, color: S.activeColor, borderLeft: `2px solid ${S.activeBorder}` }
-                    : { color: S.inactiveNav, borderLeft: '2px solid transparent' }
+                    ? { background: S.activeBg, color: S.activeColor }
+                    : { color: S.inactiveNav }
                 }
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = S.hoverColor; }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = S.inactiveNav; }}
@@ -207,8 +207,8 @@ export default function Sidebar({ open, onClose }) {
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors mb-0.5"
                 style={
                   isActive
-                    ? { background: S.activeBg, color: S.activeColor, borderLeft: `2px solid ${S.activeBorder}` }
-                    : { color: S.inactiveNav, borderLeft: '2px solid transparent' }
+                    ? { background: S.activeBg, color: S.activeColor }
+                    : { color: S.inactiveNav }
                 }
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = S.hoverColor; }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = S.inactiveNav; }}
