@@ -245,7 +245,7 @@ describe('Announcement archive resident visibility', () => {
     expect(updateDoc).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
-        status: 'active',
+        status: 'Reported',
         case_status: 'Reported',
         caseStatus: 'Reported',
         previous_status: null,

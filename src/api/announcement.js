@@ -105,7 +105,7 @@ function mapAnnouncementStatus(data) {
 function getArchiveStatusUpdate(isHidden, hiddenAt, { isDeleted = false, previousStatus = 'Reported' } = {}) {
   return {
     ...getResidentVisibilityPayload(isHidden, hiddenAt, { isDeleted }),
-    status: isHidden ? (isDeleted ? 'deleted' : 'archived') : 'active',
+    status: isHidden ? (isDeleted ? 'deleted' : 'archived') : previousStatus,
     case_status: previousStatus,
     caseStatus: previousStatus,
     previous_status: isHidden ? previousStatus : null,
@@ -247,15 +247,17 @@ export async function createAnnouncement({ title, content, imageUrl, status, ...
     throw new TypeError('Announcement content cannot be empty');
   }
 
+  const initialStatus = status ? mapRawAnnouncementStatus(status) : 'Reported';
+
   await addDoc(collection(db, 'announcements'), {
     title: title.trim(),
     // content is optional — store it if provided, otherwise omit
     ...(content && content.trim() ? { content: content.trim() } : {}),
     // imageUrl from Cloudinary upload
     ...(imageUrl ? { imageUrl } : {}),
-    status: 'active',
-    case_status: status ? mapRawAnnouncementStatus(status) : 'Reported',
-    caseStatus: status ? mapRawAnnouncementStatus(status) : 'Reported',
+    status: initialStatus,
+    case_status: initialStatus,
+    caseStatus: initialStatus,
     ...getResidentVisibilityPayload(false),
     ...rest,
     timestamp: serverTimestamp(),
@@ -448,8 +450,16 @@ export async function syncArchivedAnnouncementVisibility(announcement) {
 export async function updateAnnouncementStatus(announcementId, status, evidenceUrls = []) {
   const mapped = mapRawAnnouncementStatus(status);
   const annRef = doc(db, 'announcements', announcementId);
+  const annSnap = await getDoc(annRef);
+  const visibilityStatus = annSnap.exists() ? getAnnouncementVisibilityStatus(annSnap.data()) : 'active';
 
   const updatePayload = { case_status: mapped, caseStatus: mapped };
+  if (visibilityStatus === 'active') {
+    updatePayload.status = mapped;
+  } else {
+    updatePayload.previous_status = mapped;
+  }
+
   if (evidenceUrls === null || (Array.isArray(evidenceUrls) && evidenceUrls.length === 0)) {
     updatePayload.evidenceUrl = deleteField();
     updatePayload.evidenceUrls = deleteField();
@@ -479,9 +489,10 @@ export async function updateAnnouncement(announcementId, fields) {
   const updatedData = { ...fields };
   if (fields.title) updatedData.title = fields.title.trim();
   if (fields.status) {
-    updatedData.case_status = mapRawAnnouncementStatus(fields.status);
-    updatedData.caseStatus = mapRawAnnouncementStatus(fields.status);
-    delete updatedData.status;
+    const mappedStatus = mapRawAnnouncementStatus(fields.status);
+    updatedData.case_status = mappedStatus;
+    updatedData.caseStatus = mappedStatus;
+    updatedData.status = mappedStatus;
   }
 
   await updateDoc(annRef, updatedData);
