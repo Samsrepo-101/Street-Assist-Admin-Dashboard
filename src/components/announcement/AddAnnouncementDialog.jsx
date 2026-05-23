@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Upload, X, ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, X, ImageIcon, Loader2, Camera } from 'lucide-react';
 import { createAnnouncement, updateAnnouncement } from '../../api/announcement.js';
 import { uploadImageToCloudinary, uploadMediaToCloudinary } from '../../api/cloudinary.js';
 import MapPickerField from '../shared/MapPickerField';
@@ -31,6 +31,7 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
   const proofInputRef = useRef(null);
+  const cameraProofRef = useRef(null);
 
   useEffect(() => {
     const urls = proofFiles.map(file => URL.createObjectURL(file));
@@ -367,22 +368,45 @@ export default function AddAnnouncementDialog({ open, onClose, announcement, for
             <div className="space-y-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <Label>Proof / Evidence <span className="text-muted-foreground font-normal text-xs">(images or video up to 30 sec)</span></Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => proofInputRef.current?.click()}
-                  className="h-8 text-xs font-semibold"
-                >
-                  <ImageIcon className="h-3.5 w-3.5 mr-1" />
-                  Select Proof
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => proofInputRef.current?.click()}
+                    className="h-8 text-xs font-semibold flex-1 sm:flex-none"
+                    disabled={isClosed}
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    Upload File
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => cameraProofRef.current?.click()}
+                    className="h-8 text-xs font-semibold flex-1 sm:flex-none"
+                    disabled={isClosed}
+                  >
+                    <Camera className="h-3.5 w-3.5 mr-1.5" />
+                    Take Photo
+                  </Button>
+                </div>
               </div>
               <input
                 ref={proofInputRef}
                 type="file"
                 multiple
                 accept={PROOF_MEDIA_ACCEPT}
+                className="hidden"
+                onChange={handleProofChange}
+              />
+              {/* Camera capture */}
+              <input
+                ref={cameraProofRef}
+                type="file"
+                accept="image/*,video/*"
+                capture="environment"
                 className="hidden"
                 onChange={handleProofChange}
               />

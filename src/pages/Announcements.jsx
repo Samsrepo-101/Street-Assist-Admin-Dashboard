@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Camera, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isAfter, subDays } from 'date-fns';
@@ -74,6 +74,7 @@ export default function Announcements() {
   const [clearEvidence, setClearEvidence] = useState(false);
   const statusTargetIsClosed = statusTarget?.status === 'Case Closed';
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const { adminRole } = useAuth();
   const isMissingAnimalsAdmin = isMissingAnimalsAdminRole(adminRole);
   const isMissingPersonAdmin = isMissingPersonAdminRole(adminRole);
@@ -275,7 +276,7 @@ export default function Announcements() {
             />
           </div>
           {isScopedAnnouncementAdmin ? (
-            <span className="h-9 inline-flex items-center rounded-md bg-emerald-50 px-3 text-sm font-semibold text-emerald-700">
+            <span className="h-9 inline-flex items-center rounded-md bg-blue-50 px-3 text-sm font-semibold text-blue-700">
               {isMissingPersonAdmin ? 'Missing person only' : 'Missing animal only'}
             </span>
           ) : (
@@ -391,6 +392,15 @@ export default function Announcements() {
             className="hidden"
             onChange={handleEvidenceSelected}
           />
+          {/* Camera capture input */}
+          <Input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*,video/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleEvidenceSelected}
+          />
 
           {newStatus === 'Case Closed' && (
             <div className="rounded-xl border border-border bg-slate-50 p-3 text-sm text-slate-700 space-y-3">
@@ -401,15 +411,28 @@ export default function Announcements() {
                     Please attach proof media for this announcement. Videos must be 30 seconds or less.
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="h-8 text-xs font-semibold"
-                >
-                  Select Proof
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-8 text-xs font-semibold flex-1 sm:flex-none"
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    Upload File
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="h-8 text-xs font-semibold flex-1 sm:flex-none"
+                  >
+                    <Camera className="h-3.5 w-3.5 mr-1.5" />
+                    Take Photo
+                  </Button>
+                </div>
               </div>
 
               {existingEvidenceImages.length > 0 && (

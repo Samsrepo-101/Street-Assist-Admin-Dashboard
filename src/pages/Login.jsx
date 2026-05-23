@@ -80,7 +80,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: 'linear-gradient(135deg, hsl(150 55% 8%) 0%, hsl(152 50% 14%) 50%, hsl(148 45% 18%) 100%)' }}
+      style={{ background: 'linear-gradient(135deg, hsl(213 55% 10%) 0%, hsl(213 50% 16%) 50%, hsl(213 45% 20%) 100%)' }}
     >
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-white/10 p-8">
         {/* App title */}
@@ -105,10 +105,10 @@ export default function Login() {
                     key={role.value}
                     type="button"
                     onClick={() => setSelectedRole(role.value)}
-                    className={`rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 ${
+                    className={`rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
                       active
-                        ? 'border-emerald-600 bg-emerald-50 text-emerald-800 shadow-sm'
-                        : 'border-gray-300 bg-white text-gray-700 hover:border-emerald-300 hover:bg-emerald-50/50'
+                        ? 'border-blue-600 bg-blue-50 text-blue-800 shadow-sm'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50/50'
                     }`}
                     aria-pressed={active}
                   >
@@ -171,7 +171,7 @@ export default function Login() {
             type="submit"
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition"
-            style={{ background: 'linear-gradient(135deg, hsl(145 65% 32%), hsl(152 70% 22%))' }}
+            style={{ background: 'linear-gradient(135deg, hsl(213 90% 48%), hsl(213 80% 38%))' }}
           >
             {loading && (
               <svg

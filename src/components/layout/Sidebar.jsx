@@ -19,15 +19,15 @@ const navItems = [
 ];
 
 const S = {
-  bg:           'hsl(150 55% 8%)',
-  border:       'hsl(150 40% 14%)',
-  labelColor:   'hsl(145 25% 38%)',
-  inactiveNav:  'hsl(140 30% 52%)',
-  activeBg:     'linear-gradient(90deg, hsl(145 65% 52% / 0.18), hsl(145 65% 52% / 0.06))',
-  activeColor:  'hsl(145 65% 62%)',
-  activeBorder: 'hsl(145 65% 52%)',
-  logoutColor:  'hsl(145 25% 38%)',
-  subtitleColor:'hsl(145 50% 60%)',
+  bg:           'hsl(213 55% 10%)',
+  border:       'hsl(213 45% 16%)',
+  labelColor:   'hsl(213 25% 42%)',
+  inactiveNav:  'hsl(213 35% 58%)',
+  activeBg:     'linear-gradient(90deg, hsl(213 80% 58% / 0.18), hsl(213 80% 58% / 0.06))',
+  activeColor:  'hsl(213 80% 68%)',
+  activeBorder: 'hsl(213 80% 58%)',
+  logoutColor:  'hsl(213 25% 42%)',
+  subtitleColor:'hsl(213 60% 65%)',
 };
 
 export default function Sidebar({ open, onClose }) {

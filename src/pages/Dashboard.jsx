@@ -89,9 +89,9 @@ export default function Dashboard() {
           label="Resolved"
           value={resolved}
           icon={CheckCircle2}
-          gradient="bg-gradient-to-r from-emerald-400 to-green-500"
-          textColor="text-emerald-600"
-          iconBg="bg-emerald-50"
+          gradient="bg-gradient-to-r from-blue-400 to-blue-600"
+          textColor="text-blue-600"
+          iconBg="bg-blue-50"
         />
       </div>
 

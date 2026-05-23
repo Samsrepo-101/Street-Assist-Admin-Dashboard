@@ -126,7 +126,7 @@ export const STATUS_CONFIG = {
   'Pending':     { label: 'Pending',     badge: 'bg-amber-50 text-amber-700 border-amber-200',   bar: '#F59E0B', dot: 'bg-amber-400' },
   'Verified':    { label: 'Verified',    badge: 'bg-sky-50 text-sky-700 border-sky-200',         bar: '#0284c7', dot: 'bg-sky-500' },
   'In Progress': { label: 'In Progress', badge: 'bg-purple-50 text-purple-700 border-purple-200', bar: '#7c3aed', dot: 'bg-purple-500' },
-  'Resolved':    { label: 'Resolved',    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', bar: '#10B981', dot: 'bg-emerald-400' },
+  'Resolved':    { label: 'Resolved',    badge: 'bg-blue-50 text-blue-700 border-blue-200', bar: '#1d6cdb', dot: 'bg-blue-400' },
   'Closed':      { label: 'Closed',      badge: 'bg-slate-50 text-slate-700 border-slate-200',   bar: '#64748b', dot: 'bg-slate-400' },
   
   // Legacy mappings for safe fallback usage
@@ -136,7 +136,7 @@ export const STATUS_CONFIG = {
   'on_progress': { label: 'In Progress', badge: 'bg-purple-50 text-purple-700 border-purple-200', bar: '#7c3aed', dot: 'bg-purple-500' },
   'in review':   { label: 'In Progress', badge: 'bg-purple-50 text-purple-700 border-purple-200', bar: '#7c3aed', dot: 'bg-purple-500' },
   'in_review':   { label: 'In Progress', badge: 'bg-purple-50 text-purple-700 border-purple-200', bar: '#7c3aed', dot: 'bg-purple-500' },
-  'resolved':    { label: 'Resolved',    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', bar: '#10B981', dot: 'bg-emerald-400' },
+  'resolved':    { label: 'Resolved',    badge: 'bg-blue-50 text-blue-700 border-blue-200', bar: '#1d6cdb', dot: 'bg-blue-400' },
   'rejected':    { label: 'Closed',      badge: 'bg-slate-50 text-slate-700 border-slate-200',   bar: '#64748b', dot: 'bg-slate-400' },
   'closed':      { label: 'Closed',      badge: 'bg-slate-50 text-slate-700 border-slate-200',   bar: '#64748b', dot: 'bg-slate-400' },
 };

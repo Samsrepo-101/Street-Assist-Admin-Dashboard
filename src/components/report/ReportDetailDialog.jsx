@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Calendar, User, Phone, Map, ImageIcon, ChevronLeft, ChevronRight, Tag, Download, Loader2, X, Play, Eye } from 'lucide-react';
+import { MapPin, Calendar, User, Phone, Map, ImageIcon, ChevronLeft, ChevronRight, Tag, Download, Loader2, X, Play, Eye, Camera, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { updateReportStatus, addReportStatusUpdate, updateReportMeta, enrichReportWithUser, getStatusConfig, REPORT_STATUSES } from '../../api/reports.js';
 import { exportReportPDF } from '../../utils/exportReportPDF.js';
@@ -131,6 +131,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   const [proofPreviews, setProofPreviews] = useState([]);
   const [existingProofImages, setExistingProofImages] = useState([]);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   useEffect(() => {
     const urls = proofFiles.map(file => URL.createObjectURL(file));
@@ -332,6 +333,15 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                 className="hidden"
                 onChange={handleProofSelection}
               />
+              {/* Camera capture input — rear camera on mobile */}
+              <Input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*,video/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleProofSelection}
+              />
 
               {/* Description */}
               <div className="bg-muted/40 rounded-lg p-3 border border-border">
@@ -435,7 +445,7 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
               {/* Resolution info */}
               {r.resolutionTimestamp && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs text-emerald-700">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-700">
                   Resolved on{' '}
                   {r.resolutionTimestamp?.toDate
                     ? format(r.resolutionTimestamp.toDate(), 'MMM dd, yyyy · hh:mm a')
@@ -555,22 +565,42 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                     <span className="text-xs font-bold text-foreground uppercase tracking-wide">Proof / Evidence</span>
                     <p className="text-[10px] text-muted-foreground mt-0.5">Images or videos up to 30 seconds</p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (!canManageProof) {
-                        toast.error('Set the report status to Resolved before adding proof.');
-                        return;
-                      }
-                      fileInputRef.current?.click();
-                    }}
-                    disabled={!canManageProof}
-                    className="h-8 text-xs font-semibold bg-white"
-                  >
-                    Select proof
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (!canManageProof) {
+                          toast.error('Set the report status to Resolved before adding proof.');
+                          return;
+                        }
+                        fileInputRef.current?.click();
+                      }}
+                      disabled={!canManageProof}
+                      className="h-8 text-xs font-semibold bg-white flex-1 sm:flex-none"
+                    >
+                      <Upload className="h-3.5 w-3.5 mr-1.5" />
+                      Upload File
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (!canManageProof) {
+                          toast.error('Set the report status to Resolved before adding proof.');
+                          return;
+                        }
+                        cameraInputRef.current?.click();
+                      }}
+                      disabled={!canManageProof}
+                      className="h-8 text-xs font-semibold bg-white flex-1 sm:flex-none"
+                    >
+                      <Camera className="h-3.5 w-3.5 mr-1.5" />
+                      Take Photo
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="rounded-lg border border-dashed border-border bg-white p-3 text-sm text-muted-foreground">

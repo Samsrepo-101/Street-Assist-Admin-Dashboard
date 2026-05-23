@@ -228,7 +228,7 @@ export default function Reports() {
             />
           </div>
           {isScopedReportAdmin ? (
-            <span className="h-9 inline-flex items-center rounded-md bg-emerald-50 px-3 text-sm font-semibold text-emerald-700">
+            <span className="h-9 inline-flex items-center rounded-md bg-blue-50 px-3 text-sm font-semibold text-blue-700">
               {isHomelessAdmin ? 'Individual reports only' : 'Animal reports only'}
             </span>
           ) : (
@@ -292,8 +292,8 @@ export default function Reports() {
       </div>
 
       {/* Reports list */}
-      <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
-        <div className="flex flex-col gap-1 border-b border-border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="space-y-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             {filtered.length} Report{filtered.length !== 1 ? 's' : ''} Found
           </p>
@@ -301,7 +301,7 @@ export default function Reports() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-20 bg-white rounded-2xl border border-border">
             <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
               <FileText className="h-6 w-6 text-muted-foreground" />
             </div>
@@ -309,92 +309,108 @@ export default function Reports() {
             <p className="text-xs text-muted-foreground mt-1">Try adjusting your filters</p>
           </div>
         ) : (
-          <div className="divide-y divide-border">
+          <div className="space-y-2.5">
             {filtered.map((report) => {
               const sc = statusConfig[report.status] ?? statusConfig.pending;
               return (
                 <div
                   key={report.id}
-                  className="flex flex-col gap-3 px-4 py-4 hover:bg-muted/20 transition-colors cursor-pointer group sm:flex-row sm:items-center sm:gap-4 sm:px-6"
+                  className="group relative bg-white rounded-2xl border border-border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden"
                   onClick={() => setSelectedReport(report)}
+                  style={{ borderLeft: `4px solid ${sc.bar}` }}
                 >
-                  {/* Checkbox */}
-                  <div className="flex w-full items-start gap-3 sm:w-auto sm:items-center">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(report.id)}
-                      onChange={(e) => { e.stopPropagation(); toggleSelect(report.id); }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="mt-1 h-4 w-4 rounded border-border accent-primary shrink-0 sm:mt-0"
-                    />
+                  {/* Card body */}
+                  <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-4 sm:p-5">
 
-                    {/* Color bar */}
-                    <div className="w-0.5 h-12 rounded-full shrink-0" style={{ backgroundColor: sc.bar }} />
-                  </div>
-
-                  {/* Main content */}
-                  <div className="w-full flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-mono font-bold text-primary">
-                        {report.report_id || report.id}
-                      </span>
-                      {!report.admin_seen && (
-                        <span className="text-[9px] font-bold bg-destructive text-white px-1.5 py-0.5 rounded-full tracking-widest">NEW</span>
-                      )}
+                    {/* Checkbox — stop propagation */}
+                    <div className="shrink-0 flex items-start pt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(report.id)}
+                        onChange={(e) => { e.stopPropagation(); toggleSelect(report.id); }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4 rounded border-border accent-primary"
+                      />
                     </div>
-                    <p className="text-sm font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                      {report.description || 'No description'}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5">
-                      <span className="flex items-center gap-1 text-xs font-medium text-foreground/70">
-                        <User className="h-3 w-3 text-primary/60" />
-                        {report.fullName || report.reporter_name || 'Anonymous'}
-                      </span>
-                      {(report.locationAddress || report.location_address) && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          {report.locationAddress || report.location_address}
+
+                    {/* Main content */}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      {/* Top row: ID + NEW badge + status pill */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-mono font-bold text-primary">
+                          {report.report_id || report.id}
                         </span>
-                      )}
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {report.seenAt?.toDate
-                          ? format(report.seenAt.toDate(), 'MMM dd, yyyy · hh:mm a')
-                          : report.timestamp?.toDate
-                          ? format(report.timestamp.toDate(), 'MMM dd, yyyy · hh:mm a')
-                          : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
+                        {!report.admin_seen && (
+                          <span className="text-[9px] font-bold bg-destructive text-white px-1.5 py-0.5 rounded-full tracking-widest animate-pulse">NEW</span>
+                        )}
+                        {report.reportType && (
+                          <span className="text-[10px] font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full border border-border">
+                            {report.reportType}
+                          </span>
+                        )}
+                        {/* Status badge — shown inline on mobile */}
+                        <span className={`ml-auto sm:hidden text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${sc.badge}`}>
+                          {sc.label}
+                        </span>
+                      </div>
 
-                  {/* Status + chevron */}
-                  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
-                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${sc.badge}`}>
-                      {sc.label}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs font-semibold"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedReport(report);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs font-semibold"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        archiveSingleReport(report.id);
-                      }}
-                    >
-                      <Archive className="h-3.5 w-3.5 mr-1" /> Archive
-                    </Button>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                      {/* Description */}
+                      <p className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+                        {report.description || 'No description'}
+                      </p>
+
+                      {/* Meta row */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-foreground/70">
+                          <User className="h-3 w-3 text-primary/60 shrink-0" />
+                          {report.fullName || report.reporter_name || 'Anonymous'}
+                        </span>
+                        {(report.locationAddress || report.location_address) && (
+                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate max-w-[200px]">{report.locationAddress || report.location_address}</span>
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          {report.seenAt?.toDate
+                            ? format(report.seenAt.toDate(), 'MMM dd, yyyy · hh:mm a')
+                            : report.timestamp?.toDate
+                            ? format(report.timestamp.toDate(), 'MMM dd, yyyy · hh:mm a')
+                            : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right column: status + actions (desktop) */}
+                    <div className="flex items-center gap-2 sm:shrink-0 sm:flex-col sm:items-end sm:gap-2">
+                      {/* Status badge — hidden on mobile (shown inline above) */}
+                      <span className={`hidden sm:inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${sc.badge}`}>
+                        {sc.label}
+                      </span>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-3 text-xs font-semibold hover:bg-primary/10 hover:text-primary"
+                          onClick={(e) => { e.stopPropagation(); setSelectedReport(report); }}
+                        >
+                          View / Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          onClick={(e) => { e.stopPropagation(); archiveSingleReport(report.id); }}
+                          title="Archive"
+                        >
+                          <Archive className="h-3.5 w-3.5" />
+                        </Button>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               );

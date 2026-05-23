@@ -39,11 +39,11 @@ function timeAgo(date) {
 const STATUS_BADGE = {
   'pending':     'bg-amber-50 text-amber-700 border border-amber-200',
   'on_progress': 'bg-teal-50 text-teal-700 border border-teal-200',
-  'resolved':    'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  'resolved':    'bg-blue-50 text-blue-700 border border-blue-200',
   'rejected':    'bg-red-50 text-red-700 border border-red-200',
   'Pending':     'bg-amber-50 text-amber-700 border border-amber-200',
   'In Review':   'bg-teal-50 text-teal-700 border border-teal-200',
-  'Resolved':    'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  'Resolved':    'bg-blue-50 text-blue-700 border border-blue-200',
   'Rejected':    'bg-red-50 text-red-700 border border-red-200',
 };
 
@@ -108,12 +108,12 @@ function AnnouncementFeedItem({ ann }) {
       to="/announcements"
       className="flex items-start gap-3 px-5 py-3.5 hover:bg-muted/30 transition-colors group"
     >
-      <div className="h-8 w-8 rounded bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
-        <Megaphone className="h-4 w-4 text-emerald-700" />
+      <div className="h-8 w-8 rounded bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
+        <Megaphone className="h-4 w-4 text-blue-700" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">
             Announcement
           </span>
           {ann.category && (
