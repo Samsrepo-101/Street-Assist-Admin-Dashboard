@@ -165,6 +165,15 @@ export default function Announcements() {
 
   const handleUpdateStatus = async () => {
     if (!statusTarget || !newStatus) return;
+
+    // Proof is required when closing a case
+    const requiresProof = newStatus === 'Case Closed';
+    const hasProof = existingEvidenceImages.length > 0 || evidenceFiles.length > 0;
+    if (requiresProof && !hasProof) {
+      toast.error('Please attach at least one proof photo or video before closing this case.');
+      return;
+    }
+
     const uploadedUrls = [];
     if (isReplacingEvidence && evidenceFiles.length > 0) {
       setUploadingEvidence(true);
@@ -416,9 +425,11 @@ export default function Announcements() {
             <div className="rounded-xl border border-border bg-slate-50 p-3 text-sm text-slate-700 space-y-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-semibold text-xs">Evidence required</p>
+                  <p className="font-semibold text-xs flex items-center gap-1">
+                    <span className="text-destructive">*</span> Proof required
+                  </p>
                   <p className="text-[10px] text-muted-foreground">
-                    Please attach proof media for this announcement. Videos must be 30 seconds or less.
+                    Attach at least one photo or video (max 30 sec) to close this case.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -454,6 +465,16 @@ export default function Announcements() {
                   </Button>
                 </div>
               </div>
+
+              {/* Proof missing warning */}
+              {existingEvidenceImages.length === 0 && evidenceFiles.length === 0 && (
+                <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/30 px-3 py-2">
+                  <span className="text-destructive text-xs font-bold">⚠</span>
+                  <p className="text-xs text-destructive font-medium">
+                    No proof attached — you must add at least one before saving.
+                  </p>
+                </div>
+              )}
 
               {existingEvidenceImages.length > 0 && (
                 <div className="mt-3 space-y-2">
@@ -531,10 +552,6 @@ export default function Announcements() {
                 </div>
               )}
 
-              {existingEvidenceImages.length === 0 && evidenceFiles.length === 0 && (
-                <p className="mt-2 text-xs text-muted-foreground text-center py-2">No proof media selected yet.</p>
-              )}
-
               {uploadingEvidence && (
                 <p className="mt-2 text-xs text-muted-foreground animate-pulse text-center">Uploading evidence...</p>
               )}
@@ -543,7 +560,16 @@ export default function Announcements() {
 
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={() => setStatusTarget(null)}>Cancel</Button>
-            <Button onClick={handleUpdateStatus} disabled={uploadingEvidence}>Update</Button>
+            <Button
+              onClick={handleUpdateStatus}
+              disabled={
+                uploadingEvidence ||
+                (newStatus === 'Case Closed' &&
+                  existingEvidenceImages.length === 0 && evidenceFiles.length === 0)
+              }
+            >
+              Update
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

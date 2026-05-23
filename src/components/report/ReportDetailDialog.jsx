@@ -166,14 +166,9 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
-    const nextCanManageProof = newStatus === 'Resolved' || r.status === 'Resolved';
+    const nextCanManageProof = newStatus === 'Resolved' || r.status === 'Resolved' || r.status === 'Closed' || newStatus === 'Closed';
     if (!nextCanManageProof) {
       setProofFiles([]);
-    }
-    if (newStatus === 'Resolved' && status !== newStatus) {
-      if (fileInputRef.current) {
-        fileInputRef.current.click();
-      }
     }
   };
 
@@ -200,6 +195,15 @@ export default function ReportDetailDialog({ report, open, onClose }) {
 
   const handleSendUpdate = async () => {
     if (!status) return;
+
+    // Proof is required when setting status to Resolved or Closed
+    const requiresProof = status === 'Resolved' || status === 'Closed';
+    const hasProof = existingProofImages.length > 0 || proofFiles.length > 0;
+    if (requiresProof && !hasProof) {
+      toast.error('Please attach at least one proof photo or video before marking this report as ' + status + '.');
+      return;
+    }
+
     setSaving(true);
     try {
       let proofUrls = [];
@@ -238,6 +242,14 @@ export default function ReportDetailDialog({ report, open, onClose }) {
   };
 
   const handleSave = async () => {
+    // Proof is required when saving with Resolved or Closed status
+    const requiresProof = status === 'Resolved' || status === 'Closed';
+    const hasProof = existingProofImages.length > 0 || proofFiles.length > 0;
+    if (requiresProof && !hasProof) {
+      toast.error('Please attach at least one proof photo or video before marking this report as ' + status + '.');
+      return;
+    }
+
     setSaving(true);
     try {
       let proofUrls = [];
@@ -637,6 +649,14 @@ export default function ReportDetailDialog({ report, open, onClose }) {
                     <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 border border-amber-200">
                       Proof can be added only when the report is Resolved.
                     </p>
+                  )}
+                  {canManageProof && (status === 'Resolved' || status === 'Closed') && existingProofImages.length === 0 && proofFiles.length === 0 && (
+                    <div className="mb-3 flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/30 px-3 py-2">
+                      <span className="text-destructive text-xs font-bold">⚠</span>
+                      <p className="text-xs text-destructive font-medium">
+                        Proof is required before marking this report as {status}. Please upload or capture at least one photo or video.
+                      </p>
+                    </div>
                   )}
                   {existingProofImages.length > 0 && (
                     <div className="mb-3">

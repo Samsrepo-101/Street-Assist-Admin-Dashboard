@@ -8,39 +8,39 @@
   :root {
     --font-inter: 'Inter', sans-serif;
 
-    /* Light Blue & White Premium Palette */
-    --background: 200 40% 97%;      /* Premium Ice-Blue Background */
-    --foreground: 200 50% 10%;      /* Deep Slate Navy for high-contrast text */
+    /* Light Blue & White Premium Palette (#0e77dd Brand Color) */
+    --background: 210 40% 98%;      /* Very clean, extremely light ice-blue background */
+    --foreground: 210 50% 12%;      /* Premium deep navy for text */
 
     --card: 0 0% 100%;              /* Pure White for clean cards */
-    --card-foreground: 200 50% 10%;
+    --card-foreground: 210 50% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 200 50% 10%;
+    --popover-foreground: 210 50% 12%;
 
-    /* Primary: Vibrant Sky/Light Blue */
-    --primary: 200 95% 48%;         /* Vibrant light blue (#0ea5e9 style) */
+    /* Primary: Vibrant Premium Blue (#0e77dd) */
+    --primary: 210 88% 46%;         /* Vibrant brand blue #0e77dd */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 30% 92%;       /* Soft light blue */
-    --secondary-foreground: 200 80% 25%;
+    --secondary: 210 30% 94%;       /* Subtle light blue */
+    --secondary-foreground: 210 88% 35%;
 
-    --muted: 200 20% 92%;           /* Subtle muted light blue */
-    --muted-foreground: 200 15% 42%;
+    --muted: 210 20% 94%;           /* Very clean subtle grey-blue */
+    --muted-foreground: 210 15% 45%;
 
-    --accent: 200 95% 48%;
+    --accent: 210 88% 46%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 82% 57%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 25% 88%;          /* Very soft bordering */
-    --input: 200 25% 88%;
-    --ring: 200 95% 48%;
+    --border: 210 25% 90%;          /* Soft clean border */
+    --input: 210 25% 90%;
+    --ring: 210 88% 46%;
 
-    --chart-1: 200 95% 48%;
-    --chart-2: 190 90% 40%;
-    --chart-3: 215 90% 50%;
+    --chart-1: 210 88% 46%;
+    --chart-2: 195 85% 42%;
+    --chart-3: 220 85% 55%;
     --chart-4: 0 82% 57%;
     --chart-5: 262 83% 58%;
 
@@ -48,13 +48,13 @@
 
     /* Sidebar: Clean White & Soft Blue Accents */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 200 50% 12%;
-    --sidebar-primary: 200 95% 48%;
+    --sidebar-foreground: 210 50% 14%;
+    --sidebar-primary: 210 88% 46%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 200 30% 96%;
-    --sidebar-accent-foreground: 200 80% 30%;
-    --sidebar-border: 200 20% 93%;
-    --sidebar-ring: 200 95% 48%;
+    --sidebar-accent: 210 30% 96%;
+    --sidebar-accent-foreground: 210 88% 35%;
+    --sidebar-border: 210 20% 94%;
+    --sidebar-ring: 210 88% 46%;
   }
 }
 
